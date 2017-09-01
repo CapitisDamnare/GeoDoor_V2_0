@@ -1,0 +1,44 @@
+<resources>
+    <string name="app_name">GeoDoor</string>
+
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+
+    <string name="action_settings">Settings</string>
+
+    <string name="txt_btn1">Einfahrt öffnen</string>
+    <string name="txt_btn2">Tür öffnen</string>
+
+    <string name="txt_distance">Distance</string>
+    <string name="distance_val">160.42km</string>
+
+    <string name="txt_speed">Speed</string>
+    <string name="speed_val">120 km/h</string>
+
+    <string name="txt_accuracy">Accuracy</string>
+    <string name="txt_accuracy_val">12 m</string>
+
+    <string name="txt_status_val">Connected</string>
+    <string name="txt_status">Status</string>
+
+    <string name="txt_mode_val">Automatic</string>
+    <string name="txt_mode">Mode</string>
+
+    <string name="txt_timelock_val">OFF</string>
+    <string name="txt_timelock">Lock and Time</string>
+
+    <string name="set_name">Name</string>
+    <string name="set_name_val">John Doe</string>
+
+    <string name="set_ip">IP Addr</string>
+    <string name="set_ip_val">192.168.1.113:1234</string>
+
+    <string name="set_home">Home</string>
+    <string name="set_home_val">lat: 47.04765827\nlong: 15.07451153\nalt: 474</string>
+
+    <string name="set_radius">Radius</string>
+    <string name="set_radius_val">200 m</string>
+
+    <string name="set_debug">Debug</string>
+    <string name="set_debug_val">default</string>
+</resources>

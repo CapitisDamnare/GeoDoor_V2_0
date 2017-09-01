@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.example.tapsi.geodoor.SettingsActivity">
+
+    <ImageView
+        android:id="@+id/set_background"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/main_background" />
+
+    <ImageView
+        android:id="@+id/set_header"
+        android:layout_width="388dp"
+        android:layout_height="50dp"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:background="@drawable/main_header" />
+
+    <Button
+        android:id="@+id/set_btn_home"
+        android:layout_width="35dp"
+        android:layout_height="30dp"
+        android:layout_alignTop="@+id/set_background"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/main_home_icon"
+        android:onClick="onClick_home" />
+
+    <ImageView
+        android:id="@+id/set_back1"
+        android:layout_width="388dp"
+        android:layout_height="60dp"
+        android:layout_below="@+id/set_header"
+        android:layout_centerHorizontal="true"
+        android:background="@drawable/main_btn1_bckgr" />
+
+    <TextView
+        android:id="@+id/set_edit_num1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/set_edit1"
+        android:layout_marginStart="26dp"
+        android:text="@string/set_name"
+        android:textAlignment="viewStart"
+        android:textAllCaps="false"
+        android:textColor="#00B0FE"
+        android:textSize="24sp" />
+
+    <EditText
+        android:id="@+id/set_edit1"
+        android:layout_width="240dp"
+        android:layout_height="60dp"
+        android:layout_alignEnd="@+id/set_back1"
+        android:layout_below="@+id/set_header"
+        android:layout_centerHorizontal="true"
+        android:background="@drawable/main_btn2_bckgr"
+        android:fontFamily="sans-serif"
+        android:inputType="text"
+        android:maxLines="1"
+        android:paddingEnd="1dp"
+        android:paddingStart="10dp"
+        android:text="@string/set_name_val"
+        android:textAlignment="viewStart"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF"
+        android:textSize="24sp"
+        android:textCursorDrawable="@drawable/color_cursor"
+        android:textSelectHandle="@color/colorWhite"/>
+
+    <ImageView
+        android:id="@+id/set_back2"
+        android:layout_width="388dp"
+        android:layout_height="60dp"
+        android:layout_below="@+id/set_edit1"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="1dp"
+        android:background="@drawable/main_btn1_bckgr" />
+
+    <TextView
+        android:id="@+id/set_edit_num2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/set_edit2"
+        android:layout_alignStart="@+id/set_edit_num1"
+        android:layout_below="@+id/set_back1"
+        android:text="@string/set_ip"
+        android:textAlignment="viewStart"
+        android:textAllCaps="false"
+        android:textColor="#00B0FE"
+        android:textSize="24sp" />
+
+    <EditText
+        android:id="@+id/set_edit2"
+        android:layout_width="240dp"
+        android:layout_height="60dp"
+        android:layout_alignStart="@+id/set_edit1"
+        android:layout_below="@+id/set_back1"
+        android:background="@drawable/main_btn2_bckgr"
+        android:fontFamily="sans-serif"
+        android:inputType="text"
+        android:maxLines="1"
+        android:paddingEnd="1dp"
+        android:paddingStart="10dp"
+        android:text="@string/set_ip_val"
+        android:textAlignment="viewStart"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF"
+        android:textSize="24sp" />
+
+    <ImageView
+        android:id="@+id/set_back3"
+        android:layout_width="388dp"
+        android:layout_height="60dp"
+        android:layout_below="@+id/set_edit2"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="1dp"
+        android:background="@drawable/main_btn1_bckgr" />
+
+    <TextView
+        android:id="@+id/set_edit_num3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignStart="@+id/set_edit_num2"
+        android:layout_below="@+id/set_back2"
+        android:layout_marginTop="12dp"
+        android:text="@string/set_home"
+        android:textAlignment="viewStart"
+        android:textAllCaps="false"
+        android:textColor="#00B0FE"
+        android:textSize="24sp" />
+
+    <EditText
+        android:id="@+id/set_edit3"
+        android:layout_width="240dp"
+        android:layout_height="60dp"
+        android:layout_alignStart="@+id/set_edit2"
+        android:layout_below="@+id/set_back2"
+        android:background="@drawable/main_btn2_bckgr"
+        android:fontFamily="sans-serif"
+        android:maxLines="3"
+        android:paddingEnd="1dp"
+        android:paddingStart="10dp"
+        android:text="@string/set_home_val"
+        android:textAlignment="viewStart"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF"
+        android:textSize="13sp" />
+
+    <ImageView
+        android:id="@+id/set_back4"
+        android:layout_width="388dp"
+        android:layout_height="60dp"
+        android:layout_below="@+id/set_edit3"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="1dp"
+        android:background="@drawable/main_btn1_bckgr" />
+
+    <TextView
+        android:id="@+id/set_edit_num4"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/set_edit4"
+        android:layout_alignStart="@+id/set_edit_num1"
+        android:layout_below="@+id/set_back3"
+        android:text="@string/set_radius"
+        android:textAlignment="viewStart"
+        android:textAllCaps="false"
+        android:textColor="#00B0FE"
+        android:textSize="24sp" />
+
+    <EditText
+        android:id="@+id/set_edit4"
+        android:layout_width="240dp"
+        android:layout_height="60dp"
+        android:layout_alignStart="@+id/set_edit1"
+        android:layout_below="@+id/set_back3"
+        android:background="@drawable/main_btn2_bckgr"
+        android:fontFamily="sans-serif"
+        android:inputType="text"
+        android:maxLines="1"
+        android:paddingEnd="1dp"
+        android:paddingStart="10dp"
+        android:text="@string/set_radius_val"
+        android:textAlignment="viewStart"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF"
+        android:textSize="24sp" />
+
+    <ImageView
+        android:id="@+id/set_back5"
+        android:layout_width="388dp"
+        android:layout_height="60dp"
+        android:layout_below="@+id/set_edit4"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="1dp"
+        android:background="@drawable/main_btn1_bckgr" />
+
+    <TextView
+        android:id="@+id/set_edit_num5"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/set_edit5"
+        android:layout_alignStart="@+id/set_edit_num1"
+        android:layout_below="@+id/set_back4"
+        android:text="@string/set_debug"
+        android:textAlignment="viewStart"
+        android:textAllCaps="false"
+        android:textColor="#00B0FE"
+        android:textSize="24sp" />
+
+    <EditText
+        android:id="@+id/set_edit5"
+        android:layout_width="240dp"
+        android:layout_height="60dp"
+        android:layout_alignStart="@+id/set_edit1"
+        android:layout_below="@+id/set_back4"
+        android:background="@drawable/main_btn2_bckgr"
+        android:fontFamily="sans-serif"
+        android:inputType="text"
+        android:maxLines="1"
+        android:paddingEnd="1dp"
+        android:paddingStart="10dp"
+        android:text="@string/set_debug_val"
+        android:textAlignment="viewStart"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF"
+        android:textSize="24sp" />
+
+    <TextView
+        android:id="@+id/set_view_error"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/set_back5"
+        android:layout_marginTop="50dp"
+        android:paddingEnd="10dp"
+        android:paddingStart="10dp"
+        android:textAlignment="viewStart"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF"
+        android:textSize="10sp" />
+
+</RelativeLayout>
