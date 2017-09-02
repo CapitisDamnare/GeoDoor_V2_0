@@ -724,7 +724,7 @@ public class MainActivity extends AppCompatActivity
         // Open Gate
         // To Test the notification
         nm.notify(uniqueID, notification.build());
-        sSocketservice.sendMessage("stop");
+        sSocketservice.sendMessage("Hello Server!");
     }
 
     private void onClickButton2() {
