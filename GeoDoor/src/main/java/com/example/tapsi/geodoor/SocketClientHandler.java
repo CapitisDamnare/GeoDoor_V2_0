@@ -6,6 +6,8 @@ import android.content.SharedPreferences;
 import android.os.Binder;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
+import android.provider.Settings;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import java.io.BufferedReader;
@@ -114,8 +116,10 @@ public class SocketClientHandler extends Service {
         }
     }
 
+    // Sending name and a unique Phone identifier
     public void checkName() {
-        sendMessage("cmnd:" + strName);
+        final TelephonyManager tm = (TelephonyManager) getBaseContext().getSystemService(getApplicationContext().TELEPHONY_SERVICE);
+        sendMessage("cmnd:" + strName + "-" + tm.getSimSerialNumber());
     }
 
     class ClientThread implements Runnable {

@@ -71,7 +71,7 @@ public class MainActivity extends AppCompatActivity
     private SharedPreferences.Editor fileEditor;
 
     // Permission stuff
-    public static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
+    public static final int MY_PERMISSIONS_REQUESTS = 99;
 
     // Notification stuff
     NotificationCompat.Builder notification;
@@ -234,12 +234,15 @@ public class MainActivity extends AppCompatActivity
     // Permissions
     public boolean checkLocationPermission() {
         if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.ACCESS_FINE_LOCATION)
+                Manifest.permission.ACCESS_FINE_LOCATION) + ContextCompat.checkSelfPermission(this,
+                Manifest.permission.READ_PHONE_STATE)
                 != PackageManager.PERMISSION_GRANTED) {
 
             // Asking user if explanation is needed
             if (ActivityCompat.shouldShowRequestPermissionRationale(this,
-                    Manifest.permission.ACCESS_FINE_LOCATION)) {
+                    Manifest.permission.ACCESS_FINE_LOCATION) ||
+                    ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    Manifest.permission.READ_PHONE_STATE)) {
 
                 // Show an explanation to the user *asynchronously* -- don't block
                 // this thread waiting for the user's response! After the user
@@ -248,37 +251,38 @@ public class MainActivity extends AppCompatActivity
                 //Prompt the user once explanation has been shown
 
                 ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                        MY_PERMISSIONS_REQUEST_LOCATION);
+                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.READ_PHONE_STATE},
+                        MY_PERMISSIONS_REQUESTS);
 
 
             } else {
                 // No explanation needed, we can request the permission.
                 ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                        MY_PERMISSIONS_REQUEST_LOCATION);
+                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.READ_PHONE_STATE},
+                        MY_PERMISSIONS_REQUESTS);
 
 
             }
             return false;
-        } else {
-            return true;
         }
+        return true;
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            String permissions[], int[] grantResults) {
         switch (requestCode) {
-            case MY_PERMISSIONS_REQUEST_LOCATION: {
+            case MY_PERMISSIONS_REQUESTS: {
                 // If request is cancelled, the result arrays are empty.
                 if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED
+                        && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
 
                     // permission was granted. Do the
                     // contacts-related task you need to do.
                     if (ContextCompat.checkSelfPermission(this,
-                            Manifest.permission.ACCESS_FINE_LOCATION)
+                            Manifest.permission.ACCESS_FINE_LOCATION) + ContextCompat.checkSelfPermission(this,
+                            Manifest.permission.READ_PHONE_STATE)
                             == PackageManager.PERMISSION_GRANTED) {
 
                         if (myService.getAPIClient() == null) {
@@ -290,13 +294,13 @@ public class MainActivity extends AppCompatActivity
 
                     // Permission denied, Disable the functionality that depends on this permission.
                     Toast.makeText(this, "permission denied", Toast.LENGTH_LONG).show();
-                    finishAndRemoveTask();
+                    fileEditor.putString("Service", "closed");
+                    fileEditor.apply();
+                    finish();
                     return;
                 }
-                Toast.makeText(this, "permission granted", Toast.LENGTH_LONG).show();
-                return;
-            }
 
+            }
             // other 'case' lines to check for other permissions this app might request.
             // You can add here other case statements according to your requirement.
         }
@@ -309,8 +313,8 @@ public class MainActivity extends AppCompatActivity
 
         notification.setSmallIcon(R.mipmap.ic_launcher);
         notification.setWhen(System.currentTimeMillis());
-        notification.setContentTitle("Tor geöffnet!");
-        notification.setContentText("Lock wurde auf 'ON' gesetzt");
+        notification.setContentTitle("Tor geöffnet");
+        notification.setContentText("Click to return");
 
         Intent intent = new Intent(this, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
@@ -329,18 +333,21 @@ public class MainActivity extends AppCompatActivity
                 // for some reason it doesn't work in onServiceConnected
                 // so we created a timer function which waits until onServiceConnected was called
 
-                sSocketservice.updateValues();
-                sSocketservice.startThread();
-
                 // Permissions
                 if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     checkLocationPermission();
                 }
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION)
+                    if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) +
+                            ContextCompat.checkSelfPermission(getApplicationContext(),
+                            Manifest.permission.READ_PHONE_STATE)
                             == PackageManager.PERMISSION_GRANTED) {
                         myService.buildGoogleApiClient();
+
+                        // Todo: If permission isn't granted you have to start the app twice for a socket connection
+                        sSocketservice.updateValues();
+                        sSocketservice.startThread();
                     }
                 }
 
@@ -414,6 +421,10 @@ public class MainActivity extends AppCompatActivity
                 public void onMessage(String msg) {
                     // Todo: Handle message: *Already used name *Connected succesfully *Door is open
                     Log.i(TAG, "onMessage: " + msg);
+                    if (msg == "abcd") {
+                        notification.setContentTitle(msg);
+                        nm.notify(uniqueID, notification.build());
+                    }
                 }
 
                 @Override
@@ -436,6 +447,7 @@ public class MainActivity extends AppCompatActivity
 
                 @Override
                 public void onCheckName(boolean val) {
+
                     Log.i(TAG, "checkName: " + String.valueOf(val));
                 }
             });
