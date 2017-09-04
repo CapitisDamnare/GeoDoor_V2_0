@@ -47,16 +47,16 @@ public class SocketClientHandler extends Service {
 
     private final IBinder binder = new SocketBinder();
 
-    public interface SocketListener {
-        public void onMessage(String msg);
+    interface SocketListener {
+        void onMessage(String msg);
 
-        public void onConnected();
+        void onConnected();
 
-        public void onDisconnected();
+        void onDisconnected();
 
-        public void onError(Exception e);
+        void onError(Exception e);
 
-        public void onCheckName(boolean val);
+        void onCheckName(boolean val);
     }
 
     // Constructor
@@ -70,7 +70,7 @@ public class SocketClientHandler extends Service {
     }
 
     // Binder stuff to get the parent class (the actual service class)
-    public class SocketBinder extends Binder {
+    class SocketBinder extends Binder {
         SocketClientHandler getService() {
             return SocketClientHandler.this;
         }
@@ -104,7 +104,7 @@ public class SocketClientHandler extends Service {
 
     public void sendMessage(String msg) {
         try {
-            if(socket == null)
+            if (socket == null)
                 throw new Exception("Couldn't send message to server. No connection?!");
             outputStream = new PrintWriter(new BufferedWriter(
                     new OutputStreamWriter(socket.getOutputStream())), true);
@@ -112,7 +112,6 @@ public class SocketClientHandler extends Service {
             outputStream.flush();
         } catch (Exception e) {
             listener.onError(e);
-            return;
         }
     }
 
@@ -122,9 +121,9 @@ public class SocketClientHandler extends Service {
         sendMessage("cmnd:" + strName + "-" + tm.getSimSerialNumber());
     }
 
-    class ClientThread implements Runnable {
+    private class ClientThread implements Runnable {
 
-        public BufferedReader inputStream = null;
+        BufferedReader inputStream = null;
         String response = null;
 
         @Override
@@ -134,7 +133,7 @@ public class SocketClientHandler extends Service {
             try {
                 InetAddress serverAddr = InetAddress.getByName(ServerIPAddress);
                 socket = new Socket(serverAddr, ServerPort);
-                if(socket == null)
+                if (socket == null)
                     throw new Exception("Couldn't connect to server!");
 
                 inputStream = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -170,7 +169,7 @@ public class SocketClientHandler extends Service {
             listener.onDisconnected();
         }
 
-        public void cancelRead() {
+        void cancelRead() {
             try {
                 if (!close) {
                     socket.close();
@@ -179,7 +178,6 @@ public class SocketClientHandler extends Service {
                 }
             } catch (Exception e) {
                 listener.onError(e);
-                return;
             }
         }
     }

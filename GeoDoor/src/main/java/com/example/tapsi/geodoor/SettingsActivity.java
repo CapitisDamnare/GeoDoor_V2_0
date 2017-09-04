@@ -81,7 +81,7 @@ public class SettingsActivity extends AppCompatActivity {
         settingsData = PreferenceManager.getDefaultSharedPreferences(this);
         fileEditor = settingsData.edit();
 
-        if (settingsData.getString(editNum1.getText().toString(), "") != "")
+        if (!Objects.equals(settingsData.getString(editNum1.getText().toString(), ""), ""))
             readData();
     }
 
@@ -116,7 +116,6 @@ public class SettingsActivity extends AppCompatActivity {
             Intent intent = new Intent(this, MainActivity.class);
             startActivity(intent);
             finish();
-            return;
         }
         else {
             sendOutBroadcast("onUpdateData","true");
@@ -174,10 +173,7 @@ public class SettingsActivity extends AppCompatActivity {
         if (checkRadius())
             bcheckRadius = true;
 
-        if (bcheckName && bcheckIpAddress && bcheckHomeLocation && bcheckRadius)
-            return true;
-        else
-            return false;
+        return bcheckName && bcheckIpAddress && bcheckHomeLocation && bcheckRadius;
     }
 
     private boolean checkName() {
@@ -298,7 +294,7 @@ public class SettingsActivity extends AppCompatActivity {
             Matcher m = p.matcher(strRadius);
 
             try {
-                float fRadius = Float.parseFloat(strRadius);
+                float  fRadius = Float.parseFloat(strRadius);
             } catch (Exception e) {
                 viewError.append(e.getMessage() + "\nExample format:\n200 m");
                 return false;

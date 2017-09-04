@@ -2,10 +2,7 @@ package com.example.tapsi.geodoor;
 
 import android.Manifest;
 import android.app.Service;
-import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.icu.text.SimpleDateFormat;
@@ -18,7 +15,6 @@ import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.content.ContextCompat;
-import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -33,7 +29,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.logging.SocketHandler;
 
 public class MyService extends Service implements GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
@@ -48,9 +43,8 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
 
     // File data stuff
     private SharedPreferences settingsData;
-    private SharedPreferences.Editor fileEditor;
 
-    boolean autoMode= true;
+    boolean autoMode = true;
     Location homeLocation;
     float radius;
 
@@ -65,10 +59,12 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
     private ServiceListener listener;
 
     // Interface declaring the Event
-    public interface ServiceListener {
-        public void onTimeUpdate(String time);
-        public void onLocationUpdate(List<String> data);
-        public void onOpenGate();
+    interface ServiceListener {
+        void onTimeUpdate(String time);
+
+        void onLocationUpdate(List<String> data);
+
+        void onOpenGate();
     }
 
     // Constructor
@@ -86,7 +82,7 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
         mGoogleApiClient.connect();
     }
 
-    public GoogleApiClient getAPIClient () {
+    public GoogleApiClient getAPIClient() {
         return mGoogleApiClient;
     }
 
@@ -123,9 +119,9 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
         float distance = mLastLocation.distanceTo(homeLocation);
 
         List<String> list = new ArrayList<String>();
-        list.add(getStringValue(distance,0));
-        list.add(getStringValue(location.getSpeed(),1));
-        list.add(getStringValue(location.getAccuracy(),0));
+        list.add(getStringValue(distance, 0));
+        list.add(getStringValue(location.getSpeed(), 1));
+        list.add(getStringValue(location.getAccuracy(), 0));
 
         listener.onLocationUpdate(list);
         if (distance < radius)
@@ -153,7 +149,7 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
     }
 
     // Binder stuff to get the parent class (the actual service class)
-    public class MyLocalBinder extends Binder {
+    class MyLocalBinder extends Binder {
         MyService getService() {
             return MyService.this;
         }
@@ -171,7 +167,7 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
 
     // Stuff to do in the service
     public String getCurrentTime() {
-        SimpleDateFormat df = null;
+        SimpleDateFormat df;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
             df = new SimpleDateFormat("HH:mm:ss", Locale.GERMAN);
             return (df.format(new Date()));
@@ -181,7 +177,7 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
     }
 
     // Methods in the service which can be called to the binded client
-    public void startRepeatingTask()  {
+    public void startRepeatingTask() {
         mHandlerTask.run();
     }
 
@@ -194,21 +190,20 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
         this.listener = listener;
     }
 
-    public float  getLastDistance() {
-        float distance = mLastLocation.distanceTo(homeLocation);
-        return distance;
+    public float getLastDistance() {
+        return mLastLocation.distanceTo(homeLocation);
     }
 
     // Format the values given to the Activity
-    private String getStringValue (float number, int mode) {
+    private String getStringValue(float number, int mode) {
         // Mode 0: get formated value in m or km
         // Mode 1: get formated value in km/h
-        if(mode == 1)
+        if (mode == 1)
             number *= 3.6;
 
         boolean km = false;
         if (number > 999.99) {
-            number = number/1000;
+            number = number / 1000;
             km = true;
         }
 
@@ -219,7 +214,7 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
 
         switch (mode) {
             case 0:
-                if(km)
+                if (km)
                     str_num += " km";
                 else
                     str_num += " m";
@@ -233,14 +228,13 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
 
     // Update important values
     public void updateValues() {
-        settingsData =  PreferenceManager.getDefaultSharedPreferences(this);
-        fileEditor = settingsData.edit();
+        settingsData = PreferenceManager.getDefaultSharedPreferences(this);
 
-        String strMode = settingsData.getString("Mode","");
-        String strHomeLat = settingsData.getString("HomeLat","");
-        String strHomeLong = settingsData.getString("HomeLong","");
-        String strHomeAlt = settingsData.getString("HomeAlt","");
-        String strRadius = settingsData.getString("Radius","");
+        String strMode = settingsData.getString("Mode", "");
+        String strHomeLat = settingsData.getString("HomeLat", "");
+        String strHomeLong = settingsData.getString("HomeLong", "");
+        String strHomeAlt = settingsData.getString("HomeAlt", "");
+        String strRadius = settingsData.getString("Radius", "");
 
         if (Objects.equals(strMode, "Manual"))
             autoMode = false;
@@ -257,7 +251,7 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
         radius = fRadius;
     }
 
-    public void killMe () {
+    public void killMe() {
         android.os.Process.killProcess(android.os.Process.myPid());
     }
 

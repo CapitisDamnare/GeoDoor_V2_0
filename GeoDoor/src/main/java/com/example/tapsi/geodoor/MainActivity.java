@@ -122,7 +122,7 @@ public class MainActivity extends AppCompatActivity
         loadSharedFile();
 
         // Firsts start of the app should guid to the settings
-        if (((settingsData.getString("Correct", "")) == "")) {
+        if ((Objects.equals(settingsData.getString("Correct", ""), ""))) {
 
             Intent set_intent = new Intent(this, SettingsActivity.class);
             set_intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -297,9 +297,7 @@ public class MainActivity extends AppCompatActivity
                     fileEditor.putString("Service", "closed");
                     fileEditor.apply();
                     finish();
-                    return;
                 }
-
             }
             // other 'case' lines to check for other permissions this app might request.
             // You can add here other case statements according to your requirement.
@@ -421,7 +419,7 @@ public class MainActivity extends AppCompatActivity
                 public void onMessage(String msg) {
                     // Todo: Handle message: *Already used name *Connected succesfully *Door is open
                     Log.i(TAG, "onMessage: " + msg);
-                    if (msg == "abcd") {
+                    if (Objects.equals(msg, "abcd")) {
                         notification.setContentTitle(msg);
                         nm.notify(uniqueID, notification.build());
                     }
@@ -753,7 +751,7 @@ public class MainActivity extends AppCompatActivity
             // Disable GPS
             // Deactivate Handler ... later GPS
             saveSharedFile();
-            if(isBound == false) {
+            if(!isBound) {
                 Toast.makeText(this, "GPS not ready yet! - ", Toast.LENGTH_LONG).show();
                 return;
             }
