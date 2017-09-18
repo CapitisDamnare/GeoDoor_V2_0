@@ -118,7 +118,7 @@ public class SocketClientHandler extends Service {
     // Sending name and a unique Phone identifier
     public void checkName() {
         final TelephonyManager tm = (TelephonyManager) getBaseContext().getSystemService(getApplicationContext().TELEPHONY_SERVICE);
-        sendMessage("cmnd:" + strName + "-" + tm.getSimSerialNumber());
+        sendMessage("register:" + strName + "-" + tm.getSimSerialNumber());
     }
 
     private class ClientThread implements Runnable {
