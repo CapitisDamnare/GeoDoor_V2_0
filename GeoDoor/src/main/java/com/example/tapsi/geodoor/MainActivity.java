@@ -196,7 +196,7 @@ public class MainActivity extends AppCompatActivity
         public void onReceive(Context context, Intent intent) {
             // Get extra data included in the Intent
             String message = intent.getStringExtra("message");
-            if(Objects.equals(message, "true")) {
+            if (Objects.equals(message, "true")) {
                 myService.updateValues();
                 sSocketservice.stopThread();
                 sSocketservice.updateValues();
@@ -217,6 +217,7 @@ public class MainActivity extends AppCompatActivity
     protected void onSaveInstanceState(Bundle outState) {
         fileEditor.putString("Service", "closed");
         fileEditor.apply();
+
         super.onSaveInstanceState(outState);
     }
 
@@ -242,7 +243,7 @@ public class MainActivity extends AppCompatActivity
             if (ActivityCompat.shouldShowRequestPermissionRationale(this,
                     Manifest.permission.ACCESS_FINE_LOCATION) ||
                     ActivityCompat.shouldShowRequestPermissionRationale(this,
-                    Manifest.permission.READ_PHONE_STATE)) {
+                            Manifest.permission.READ_PHONE_STATE)) {
 
                 // Show an explanation to the user *asynchronously* -- don't block
                 // this thread waiting for the user's response! After the user
@@ -339,7 +340,7 @@ public class MainActivity extends AppCompatActivity
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) +
                             ContextCompat.checkSelfPermission(getApplicationContext(),
-                            Manifest.permission.READ_PHONE_STATE)
+                                    Manifest.permission.READ_PHONE_STATE)
                             == PackageManager.PERMISSION_GRANTED) {
                         myService.buildGoogleApiClient();
 
@@ -404,11 +405,11 @@ public class MainActivity extends AppCompatActivity
     };
 
     // Socket Service
-    private  ServiceConnection socketServiceConnection = new ServiceConnection() {
+    private ServiceConnection socketServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             Log.i(TAG, "onSocketServiceConnected!");
-            SocketClientHandler.SocketBinder sBinder = (SocketClientHandler.SocketBinder)  service;
+            SocketClientHandler.SocketBinder sBinder = (SocketClientHandler.SocketBinder) service;
             sSocketservice = sBinder.getService();
             socketIsBound = true;
 
@@ -751,7 +752,7 @@ public class MainActivity extends AppCompatActivity
             // Disable GPS
             // Deactivate Handler ... later GPS
             saveSharedFile();
-            if(!isBound) {
+            if (!isBound) {
                 Toast.makeText(this, "GPS not ready yet! - ", Toast.LENGTH_LONG).show();
                 return;
             }
@@ -760,7 +761,7 @@ public class MainActivity extends AppCompatActivity
         } else {
 
             // Tood Workaround for to fast clicking!
-            if(!isBound) {
+            if (!isBound) {
                 Toast.makeText(this, "GPS not ready yet! - ", Toast.LENGTH_LONG).show();
                 return;
             }
