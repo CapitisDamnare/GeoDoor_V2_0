@@ -48,7 +48,7 @@
         android:text="@string/txt_btn1"
         android:textAlignment="viewStart"
         android:textAllCaps="false"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/colorWhite"
         android:textSize="24sp" />
 
     <ImageView
@@ -70,7 +70,7 @@
         android:text="2"
         android:textAlignment="center"
         android:textAllCaps="false"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/colorWhite"
         android:textSize="40sp" />
 
     <Button
@@ -86,7 +86,7 @@
         android:text="@string/txt_btn2"
         android:textAlignment="viewStart"
         android:textAllCaps="false"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/colorWhite"
         android:textSize="24sp" />
 
     <ImageView
@@ -172,7 +172,7 @@
         android:text="@string/distance_val"
         android:textAlignment="viewStart"
         android:textAllCaps="false"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/colorWhite"
         android:textSize="25sp"
         android:textStyle="italic" />
 
@@ -185,7 +185,7 @@
         android:text="@string/txt_distance"
         android:textAlignment="viewStart"
         android:textAllCaps="false"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/colorWhite"
         android:textSize="12sp"
         android:textStyle="italic" />
 
@@ -200,7 +200,7 @@
         android:text="@string/speed_val"
         android:textAlignment="viewStart"
         android:textAllCaps="false"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/colorWhite"
         android:textSize="25sp"
         android:textStyle="italic" />
 
@@ -213,7 +213,7 @@
         android:text="@string/txt_speed"
         android:textAlignment="viewStart"
         android:textAllCaps="false"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/colorWhite"
         android:textSize="12sp"
         android:textStyle="italic" />
 
@@ -227,7 +227,7 @@
         android:text="@string/txt_accuracy_val"
         android:textAlignment="viewStart"
         android:textAllCaps="false"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/colorWhite"
         android:textSize="25sp"
         android:textStyle="italic" />
 
@@ -240,7 +240,7 @@
         android:text="@string/txt_accuracy"
         android:textAlignment="viewStart"
         android:textAllCaps="false"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/colorWhite"
         android:textSize="12sp"
         android:textStyle="italic" />
 
@@ -255,8 +255,8 @@
         android:text="@string/txt_status_val"
         android:textAlignment="viewStart"
         android:textAllCaps="false"
-        android:textColor="#FFFFFF"
-        android:textSize="25sp"
+        android:textColor="@color/colorRed"
+        android:textSize="23sp"
         android:textStyle="italic" />
 
     <TextView
@@ -268,7 +268,7 @@
         android:text="@string/txt_status"
         android:textAlignment="viewStart"
         android:textAllCaps="false"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/colorWhite"
         android:textSize="12sp"
         android:textStyle="italic" />
 
@@ -286,7 +286,7 @@
         android:paddingLeft="30dp"
         android:text="@string/txt_mode_val"
         android:textAllCaps="false"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/colorWhite"
         android:textSize="25sp"
         android:textStyle="italic" />
 
@@ -300,7 +300,7 @@
         android:text="@string/txt_mode"
         android:textAlignment="viewStart"
         android:textAllCaps="false"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/colorWhite"
         android:textSize="12sp"
         android:textStyle="italic" />
 
@@ -314,7 +314,7 @@
         android:text="@string/txt_timelock_val"
         android:textAlignment="viewStart"
         android:textAllCaps="false"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/colorWhite"
         android:textSize="25sp"
         android:textStyle="italic" />
 
@@ -327,7 +327,7 @@
         android:text="@string/txt_timelock"
         android:textAlignment="viewStart"
         android:textAllCaps="false"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/colorWhite"
         android:textSize="12sp"
         android:textStyle="italic" />
 

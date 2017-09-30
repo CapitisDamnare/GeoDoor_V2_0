@@ -103,7 +103,6 @@ public class SocketClientHandler extends Service {
     }
 
     public void sendMessage(String msg) {
-        System.err.println("Sent Message: " + msg);
         try {
             if (socket == null)
                 throw new Exception("Couldn't send message to server. No connection?!");
@@ -146,18 +145,7 @@ public class SocketClientHandler extends Service {
 
             while (close) {
                 try {
-                    //Thread.sleep(200);
-
                     response = inputStream.readLine();
-
-                    String tempStr = response;
-                    if (tempStr.contains("cmnd-name:")) {
-                        if (tempStr.compareTo("cmnd-name:true") == 0)
-                            listener.onCheckName(true);
-                        else if (tempStr.compareTo("cmnd-name:false") == 0)
-                            listener.onCheckName(false);
-                    }
-
                     listener.onMessage(response);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -166,8 +154,6 @@ public class SocketClientHandler extends Service {
                     return;
                 }
             }
-
-            listener.onDisconnected();
         }
 
         void cancelRead() {

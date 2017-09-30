@@ -103,6 +103,10 @@ public class MainActivity extends AppCompatActivity
 
     private boolean autoMode = true;
 
+    // Timer
+    private int mInterval = 5000; // 5 seconds by default, can be changed later
+    private Handler SocketTimer;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -418,23 +422,54 @@ public class MainActivity extends AppCompatActivity
 
                 @Override
                 public void onMessage(String msg) {
+
                     // Todo: Handle message: *Already used name *Connected succesfully *Door is open
                     Log.i(TAG, "onMessage: " + msg);
-                    if (Objects.equals(msg, "abcd")) {
-                        notification.setContentTitle(msg);
-                        nm.notify(uniqueID, notification.build());
-                    }
+                    String messageTemp = msg;
+                    final String command = messageTemp.substring(0, messageTemp.indexOf(":"));
+                    msg = messageTemp.replace(command + ":", "");
+                    final String finalMsg = msg;
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (Objects.equals(command, "answer")) {
+                                switch (finalMsg) {
+                                    case "not yet allowed":
+                                        Toast.makeText(getApplication(), "not yet allowedd", Toast.LENGTH_LONG).show();
+                                        break;
+                                    case "allowed":
+                                        Toast.makeText(getApplication(), "allowed", Toast.LENGTH_LONG).show();
+                                        break;
+                                    case "registered ... waiting for allowance":
+                                        Toast.makeText(getApplication(), "registered ... waiting for allowance", Toast.LENGTH_LONG).show();
+                                        break;
+                                }
+                            }
+                        }
+                    });
                 }
 
                 @Override
                 public void onConnected() {
                     // Todo: Show Connected in App and make alive check .. just send something
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            setTextColor(true);
+                        }
+                    });
                     Log.i(TAG, "onConnected\n");
                     sSocketservice.checkName();
                 }
 
                 @Override
                 public void onDisconnected() {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            setTextColor(false);
+                        }
+                    });
                     Log.i(TAG, "onDisconnected\n");
                 }
 
@@ -450,7 +485,6 @@ public class MainActivity extends AppCompatActivity
                     Log.i(TAG, "checkName: " + String.valueOf(val));
                 }
             });
-
         }
 
         @Override
@@ -460,6 +494,20 @@ public class MainActivity extends AppCompatActivity
             sSocketservice = null;
         }
     };
+
+    public void setTextColor(final boolean val) {
+        TextView view = (TextView) this.findViewById(R.id.txtView_status_val);
+        int greenColor = getResources().getColor(R.color.colorGreen);
+        int redColor = getResources().getColor(R.color.colorRed);
+
+        if (val) {
+            view.setText("Connected");
+            view.setTextColor(greenColor);
+        } else {
+            view.setText("Disconnected");
+            view.setTextColor(redColor);
+        }
+    }
 
     // Drawer Methods
     @Override

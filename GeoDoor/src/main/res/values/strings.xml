@@ -18,7 +18,7 @@
     <string name="txt_accuracy">Accuracy</string>
     <string name="txt_accuracy_val">12 m</string>
 
-    <string name="txt_status_val">Connected</string>
+    <string name="txt_status_val">Disconnected</string>
     <string name="txt_status">Status</string>
 
     <string name="txt_mode_val">Automatic</string>
