@@ -315,7 +315,7 @@
         android:textAlignment="viewStart"
         android:textAllCaps="false"
         android:textColor="@color/colorWhite"
-        android:textSize="25sp"
+        android:textSize="22sp"
         android:textStyle="italic" />
 
     <TextView

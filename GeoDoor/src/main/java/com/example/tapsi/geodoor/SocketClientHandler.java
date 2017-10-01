@@ -20,9 +20,6 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
-// Todo: Implement Name Handshake
-// Todo: Implement Basic Alive Check and IP Check
-
 public class SocketClientHandler extends Service {
 
     String TAG = "tapsi_Socket";
@@ -55,8 +52,6 @@ public class SocketClientHandler extends Service {
         void onDisconnected();
 
         void onError(Exception e);
-
-        void onCheckName(boolean val);
     }
 
     // Constructor
@@ -102,23 +97,23 @@ public class SocketClientHandler extends Service {
         client.cancelRead();
     }
 
+    // Sending name and a unique Phone identifier
     public void sendMessage(String msg) {
         try {
             if (socket == null)
                 throw new Exception("Couldn't send message to server. No connection?!");
             outputStream = new PrintWriter(new BufferedWriter(
                     new OutputStreamWriter(socket.getOutputStream())), true);
-            outputStream.println(msg);
+            final TelephonyManager tm = (TelephonyManager) getBaseContext().getSystemService(getApplicationContext().TELEPHONY_SERVICE);
+            outputStream.println(msg + "-" + tm.getSimSerialNumber());
             outputStream.flush();
         } catch (Exception e) {
             listener.onError(e);
         }
     }
 
-    // Sending name and a unique Phone identifier
     public void checkName() {
-        final TelephonyManager tm = (TelephonyManager) getBaseContext().getSystemService(getApplicationContext().TELEPHONY_SERVICE);
-        sendMessage("register:" + strName + "-" + tm.getSimSerialNumber());
+        sendMessage("register:" + strName);
     }
 
     private class ClientThread implements Runnable {

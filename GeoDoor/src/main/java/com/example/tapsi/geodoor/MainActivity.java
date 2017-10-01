@@ -50,11 +50,12 @@ import android.widget.Toast;
 import java.util.List;
 import java.util.Objects;
 
+//Todo: add Exception Handling and safe messages in a file
+
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
     String TAG = "tapsi_Main";
-    int counter = 1;
 
     // Save Instance
     public boolean onPause;
@@ -78,7 +79,7 @@ public class MainActivity extends AppCompatActivity
     private static final int uniqueID = 11223344;
     NotificationManager nm;
 
-    // Timer stuff
+    // Timer for permissions
     private final static int INTERVAL = 1000;
     Handler mHandler = new Handler();
 
@@ -103,9 +104,9 @@ public class MainActivity extends AppCompatActivity
 
     private boolean autoMode = true;
 
-    // Timer
-    private int mInterval = 5000; // 5 seconds by default, can be changed later
-    private Handler SocketTimer;
+    // Timer to reconnect to the server
+    private int socketInterval = 5000; // 5 seconds by default, can be changed later
+    private Handler socketTimer = new Handler();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -168,7 +169,6 @@ public class MainActivity extends AppCompatActivity
             socketIsBound = false;
             //Create a Service
             Intent intent = new Intent(this, MyService.class);
-            //intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.Fla);
             startService(intent);
             bindService(intent, myServiceConnection, Context.BIND_AUTO_CREATE);
 
@@ -183,8 +183,11 @@ public class MainActivity extends AppCompatActivity
             Log.i(TAG, "Service not started: " + settingsData.getString("Service", ""));
         }
 
-        // Thread to wait for starting things
+        // Thread to wait for starting permissin requests
         mHandlerTask.run();
+
+        // Thread to check socket connection and trigger reconnect
+        socketTask.run();
 
         // Create a notification
         buildNotification();
@@ -219,9 +222,7 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
-        fileEditor.putString("Service", "closed");
-        fileEditor.apply();
-
+        saveSharedFile();
         super.onSaveInstanceState(outState);
     }
 
@@ -325,7 +326,7 @@ public class MainActivity extends AppCompatActivity
         nm = (NotificationManager) getSystemService(Service.NOTIFICATION_SERVICE);
     }
 
-    // Wait for succesfull Bindung of the service
+    // Wait for successful binding of the service
     Runnable mHandlerTask = new Runnable() {
 
         @Override
@@ -360,6 +361,21 @@ public class MainActivity extends AppCompatActivity
         }
     };
 
+    // Check socket connection and trigger reconnect if necessary
+    Runnable socketTask = new Runnable() {
+        @Override
+        public void run() {
+            socketTimer.postDelayed(socketTask, socketInterval);
+            if (sSocketservice != null) {
+                if (!socketIsBound) {
+                    sSocketservice.stopThread();
+                    sSocketservice.updateValues();
+                    sSocketservice.startThread();
+                }
+            }
+        }
+    };
+
     //GPS Service
     private ServiceConnection myServiceConnection = new ServiceConnection() {
 
@@ -374,11 +390,28 @@ public class MainActivity extends AppCompatActivity
                 public void onTimeUpdate(String time) {
                     // GPS Updates
                     final TextView view1 = (TextView) findViewById(R.id.txtView_timelock_val);
-                    view1.setText(time);
-                    if ((counter % 10) == 0) {
-                        nm.notify(uniqueID, notification.build());
+                    String lockText = "";
+                    if (myService.isPositionLock())
+                        lockText = "lock ";
+
+                    String text = lockText + time;
+
+                    int whiteColor = getResources().getColor(R.color.colorWhite);
+                    int redColor = getResources().getColor(R.color.colorRed);
+
+                    view1.setText(text);
+                    view1.setTextColor(redColor);
+                    Log.i(TAG,"time:" + time);
+                    if (Objects.equals(time, "00:00:00")) {
+                        if (Objects.equals(lockText,"")) {
+                            atHome = false;
+                            view1.setText("OFF");
+                            view1.setTextColor(whiteColor);
+                        }
+                        else {
+                            view1.setText("lock");
+                        }
                     }
-                    counter++;
                 }
 
                 @Override
@@ -393,9 +426,12 @@ public class MainActivity extends AppCompatActivity
 
                 @Override
                 public void onOpenGate() {
-                    // Todo: Check Status from Lock and Time
-                    // Todo: Send socket command to open the gate
-
+                    if (!(atHome && myService.isPositionLock())) {
+                        atHome = true;
+                        nm.notify(uniqueID, notification.build());
+                        sSocketservice.sendMessage("output:Gate1 open");
+                        myService.startRepeatingTask();
+                    }
                 }
             });
         }
@@ -422,8 +458,7 @@ public class MainActivity extends AppCompatActivity
 
                 @Override
                 public void onMessage(String msg) {
-
-                    // Todo: Handle message: *Already used name *Connected succesfully *Door is open
+                    // Todo: add case/answer for Gate opened command and trigger animation
                     Log.i(TAG, "onMessage: " + msg);
                     String messageTemp = msg;
                     final String command = messageTemp.substring(0, messageTemp.indexOf(":"));
@@ -435,13 +470,13 @@ public class MainActivity extends AppCompatActivity
                             if (Objects.equals(command, "answer")) {
                                 switch (finalMsg) {
                                     case "not yet allowed":
-                                        Toast.makeText(getApplication(), "not yet allowedd", Toast.LENGTH_LONG).show();
+                                        Toast.makeText(getApplication(), "not yet allowed", Toast.LENGTH_LONG).show();
                                         break;
                                     case "allowed":
                                         Toast.makeText(getApplication(), "allowed", Toast.LENGTH_LONG).show();
                                         break;
-                                    case "registered ... waiting for allowance":
-                                        Toast.makeText(getApplication(), "registered ... waiting for allowance", Toast.LENGTH_LONG).show();
+                                    case "registered ... waiting for permission":
+                                        Toast.makeText(getApplication(), "registered ... waiting for permission", Toast.LENGTH_LONG).show();
                                         break;
                                 }
                             }
@@ -451,7 +486,6 @@ public class MainActivity extends AppCompatActivity
 
                 @Override
                 public void onConnected() {
-                    // Todo: Show Connected in App and make alive check .. just send something
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -478,12 +512,6 @@ public class MainActivity extends AppCompatActivity
                     Log.i(TAG, "got Exception\n");
                     e.printStackTrace();
                 }
-
-                @Override
-                public void onCheckName(boolean val) {
-
-                    Log.i(TAG, "checkName: " + String.valueOf(val));
-                }
             });
         }
 
@@ -503,9 +531,11 @@ public class MainActivity extends AppCompatActivity
         if (val) {
             view.setText("Connected");
             view.setTextColor(greenColor);
+            socketIsBound = true;
         } else {
             view.setText("Disconnected");
             view.setTextColor(redColor);
+            socketIsBound = false;
         }
     }
 
@@ -533,8 +563,6 @@ public class MainActivity extends AppCompatActivity
         } else if (id == R.id.nav_exit) {
             saveSharedFile();
             moveTaskToBack(true);
-            //finishAndRemoveTask();
-            //android.os.Process.killProcess(android.os.Process.myPid());
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -779,17 +807,14 @@ public class MainActivity extends AppCompatActivity
         });
     }
 
+    // Open Gate
     private void onClickButton1() {
-        // Open Gate
-        // To Test the notification
-        nm.notify(uniqueID, notification.build());
-        sSocketservice.sendMessage("Hello Server!");
+        sSocketservice.sendMessage("output:Gate1 open");
     }
 
+    // Open door
     private void onClickButton2() {
-        sSocketservice.stopThread();
-        sSocketservice.updateValues();
-        sSocketservice.startThread();
+        sSocketservice.sendMessage("output:Door1 open");
     }
 
     // Setting the mode and change Button Text
@@ -797,18 +822,14 @@ public class MainActivity extends AppCompatActivity
         if (autoMode) {
             autoMode = false;
             btn_mode.setText("Manual");
-            // Disable GPS
-            // Deactivate Handler ... later GPS
-            saveSharedFile();
             if (!isBound) {
                 Toast.makeText(this, "GPS not ready yet! - ", Toast.LENGTH_LONG).show();
                 return;
             }
-            myService.stopRepeatingTask();
             myService.stopGPS();
         } else {
 
-            // Tood Workaround for to fast clicking!
+            // Workaround for to fast clicking!
             if (!isBound) {
                 Toast.makeText(this, "GPS not ready yet! - ", Toast.LENGTH_LONG).show();
                 return;
@@ -816,10 +837,6 @@ public class MainActivity extends AppCompatActivity
 
             autoMode = true;
             btn_mode.setText("Automatic");
-            // Enable GPS
-            // Activate Handler ... later GPS
-            saveSharedFile();
-            myService.startRepeatingTask();
             myService.startGPS();
         }
     }
@@ -830,6 +847,11 @@ public class MainActivity extends AppCompatActivity
             autoMode = false;
         }
 
+        if (Objects.equals(settingsData.getString("atHome", ""), "true")) {
+            atHome = true;
+            Log.i(TAG, "atHome: " +String.valueOf(atHome));
+        }
+
         if (!autoMode) {
             btn_mode.setText("Manual");
         }
@@ -837,8 +859,10 @@ public class MainActivity extends AppCompatActivity
 
     private void saveSharedFile() {
         fileEditor.putString("Mode", btn_mode.getText().toString());
+        fileEditor.putString("Service", "closed");
+        fileEditor.putString("atHome", String.valueOf(atHome));
+        Log.i(TAG, "put atHome: " +String.valueOf(atHome));
         fileEditor.apply();
     }
-
 }
 

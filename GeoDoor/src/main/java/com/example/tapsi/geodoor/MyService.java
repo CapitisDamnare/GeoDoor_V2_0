@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.icu.text.SimpleDateFormat;
+import android.icu.util.Calendar;
 import android.location.Location;
 import android.os.Binder;
 import android.os.Bundle;
@@ -15,6 +16,7 @@ import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.content.ContextCompat;
+import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -45,6 +47,7 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
     private SharedPreferences settingsData;
 
     boolean autoMode = true;
+    boolean positionLock = false;
     Location homeLocation;
     float radius;
 
@@ -52,8 +55,10 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
     private final IBinder binder = new MyLocalBinder();
 
     // Timer stuff
-    private final static int INTERVAL = 1000; //200 ms
+    private final static int INTERVAL = 1000;
     Handler mHandler = new Handler();
+    private long timeFromStart = 0;
+    private final long BLOCKTIME = 6000;
 
     // Event Handling
     private ServiceListener listener;
@@ -70,6 +75,14 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
     // Constructor
     public MyService() {
         this.listener = null;
+    }
+
+    public boolean isPositionLock() {
+        return positionLock;
+    }
+
+    public void setPositionLock(boolean positionLock) {
+        this.positionLock = positionLock;
     }
 
     // Gps Google API
@@ -94,13 +107,9 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         updateValues();
-        // We got the first values
-        //socketBuilder();
         if (autoMode) {
-            startRepeatingTask();
             startGPS();
         }
-
     }
 
     @Override
@@ -124,8 +133,20 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
         list.add(getStringValue(location.getAccuracy(), 0));
 
         listener.onLocationUpdate(list);
-        if (distance < radius)
-            listener.onOpenGate();
+        if (distance < radius) {
+            if (location.getAccuracy() <= 20.00) {
+                if (!positionLock) {
+                    positionLock = true;
+                    listener.onOpenGate();
+                }
+            }
+        }
+        if (distance > radius) {
+            if (location.getAccuracy() <= 20.00) {
+                positionLock = false;
+                listener.onTimeUpdate("00:00:00");
+            }
+        }
     }
 
     public void startGPS() {
@@ -160,27 +181,43 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
         @Override
         public void run() {
             //updateTime();
-            listener.onTimeUpdate(getCurrentTime());
             mHandler.postDelayed(mHandlerTask, INTERVAL);
+            String time = getCurrentTime();
+
+            if (Objects.equals(time, "end")) {
+                listener.onTimeUpdate("00:00:00");
+                mHandler.removeCallbacks(mHandlerTask);
+            } else
+                listener.onTimeUpdate(getCurrentTime());
         }
     };
 
-    // Stuff to do in the service
+    // Block Timer
     public String getCurrentTime() {
-        SimpleDateFormat df;
+        String timeString = "";
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-            df = new SimpleDateFormat("HH:mm:ss", Locale.GERMAN);
-            return (df.format(new Date()));
+            long currentTime = Calendar.getInstance().getTimeInMillis();
+            long countDown = timeFromStart - currentTime;
+            if (countDown <= 0)
+                return "end";
+
+            SimpleDateFormat df = new SimpleDateFormat("HH:mm:ss", Locale.GERMANY);
+            timeString = df.format(countDown);
         }
-        // Todo: change - this wont work on api23 6.0
-        return "Change";
+
+        return timeString;
     }
 
-    // Methods in the service which can be called to the binded client
+    // start the Handler
     public void startRepeatingTask() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            timeFromStart = Calendar.getInstance().getTimeInMillis() + BLOCKTIME;
+        }
+
         mHandlerTask.run();
     }
 
+    // stop the Handler
     public void stopRepeatingTask() {
         mHandler.removeCallbacks(mHandlerTask);
     }
