@@ -51,6 +51,7 @@ import java.util.List;
 import java.util.Objects;
 
 //Todo: add Exception Handling and safe messages in a file
+//Todo: change font size for Lollipop
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -66,6 +67,7 @@ public class MainActivity extends AppCompatActivity
 
     // Time and Lock stuff
     public boolean atHome = false;
+    public boolean doorStatus = false;
 
     // Save data stuff
     private SharedPreferences settingsData;
@@ -354,6 +356,12 @@ public class MainActivity extends AppCompatActivity
                         sSocketservice.startThread();
                     }
                 }
+                else {
+                    // For earlier API Versions
+                    myService.buildGoogleApiClient();
+                    sSocketservice.updateValues();
+                    sSocketservice.startThread();
+                }
 
                 //After that we stop the timer
                 mHandler.removeCallbacks(mHandlerTask);
@@ -458,7 +466,6 @@ public class MainActivity extends AppCompatActivity
 
                 @Override
                 public void onMessage(String msg) {
-                    // Todo: add case/answer for Gate opened command and trigger animation
                     Log.i(TAG, "onMessage: " + msg);
                     String messageTemp = msg;
                     final String command = messageTemp.substring(0, messageTemp.indexOf(":"));
@@ -478,6 +485,11 @@ public class MainActivity extends AppCompatActivity
                                     case "registered ... waiting for permission":
                                         Toast.makeText(getApplication(), "registered ... waiting for permission", Toast.LENGTH_LONG).show();
                                         break;
+                                    case "door1 open":
+                                        doorAnimationOpen();
+                                        break;
+                                    case "door1 close":
+                                        doorAnimationClose();
                                 }
                             }
                         }
@@ -556,9 +568,10 @@ public class MainActivity extends AppCompatActivity
         if (id == R.id.nav_back) {
             // Handle the camera action
         } else if (id == R.id.nav_settings) {
-
+            Intent intent = new Intent(this, SettingsActivity.class);
+            intent.putExtra("onStart", false);
+            startActivity(intent);
         } else if (id == R.id.nav_info) {
-            doorAnimation();
 
         } else if (id == R.id.nav_exit) {
             saveSharedFile();
@@ -640,12 +653,120 @@ public class MainActivity extends AppCompatActivity
     }
 
     // Door Animation (Open and Close)
-    private void doorAnimation() {
-        doorAnimation1 = AnimationUtils.loadAnimation(this, R.anim.anim_translate_door1);
+    private void doorAnimationOpen() {
+        doorStatus = true;
+        doorAnimation1 = AnimationUtils.loadAnimation(this, R.anim.anim_translate_door_open);
+        final ImageView v1 = (ImageView) this.findViewById(R.id.main_door6);
+        v1.startAnimation(doorAnimation1);
+
+        doorAnimation2 = AnimationUtils.loadAnimation(this, R.anim.anim_translate_door_open);
+        final ImageView v2 = (ImageView) this.findViewById(R.id.main_door5);
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        v2.startAnimation(doorAnimation2);
+                    }
+                });
+            }
+        }).start();
+
+        doorAnimation3 = AnimationUtils.loadAnimation(this, R.anim.anim_translate_door_open);
+        final ImageView v3 = (ImageView) this.findViewById(R.id.main_door4);
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        v3.startAnimation(doorAnimation3);
+                    }
+                });
+            }
+        }).start();
+
+        doorAnimation4 = AnimationUtils.loadAnimation(this, R.anim.anim_translate_door_open);
+        final ImageView v4 = (ImageView) this.findViewById(R.id.main_door3);
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(800);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        v4.startAnimation(doorAnimation4);
+                    }
+                });
+            }
+        }).start();
+
+        doorAnimation5 = AnimationUtils.loadAnimation(this, R.anim.anim_translate_door_open);
+        final ImageView v5 = (ImageView) this.findViewById(R.id.main_door2);
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        v5.startAnimation(doorAnimation5);
+                    }
+                });
+            }
+        }).start();
+
+        doorAnimation6 = AnimationUtils.loadAnimation(this, R.anim.anim_translate_door_open);
+        final ImageView v6 = (ImageView) this.findViewById(R.id.main_door1);
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(1200);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        v6.startAnimation(doorAnimation6);
+                    }
+                });
+            }
+        }).start();
+    }
+
+    private void doorAnimationClose() {
+        doorStatus = false;
+        doorAnimation1 = AnimationUtils.loadAnimation(this, R.anim.anim_translate_door_close);
         final ImageView v1 = (ImageView) this.findViewById(R.id.main_door1);
         v1.startAnimation(doorAnimation1);
 
-        doorAnimation2 = AnimationUtils.loadAnimation(this, R.anim.anim_translate_door1);
+        doorAnimation2 = AnimationUtils.loadAnimation(this, R.anim.anim_translate_door_close);
         final ImageView v2 = (ImageView) this.findViewById(R.id.main_door2);
 
         new Thread(new Runnable() {
@@ -665,7 +786,7 @@ public class MainActivity extends AppCompatActivity
             }
         }).start();
 
-        doorAnimation3 = AnimationUtils.loadAnimation(this, R.anim.anim_translate_door1);
+        doorAnimation3 = AnimationUtils.loadAnimation(this, R.anim.anim_translate_door_close);
         final ImageView v3 = (ImageView) this.findViewById(R.id.main_door3);
 
         new Thread(new Runnable() {
@@ -685,7 +806,7 @@ public class MainActivity extends AppCompatActivity
             }
         }).start();
 
-        doorAnimation4 = AnimationUtils.loadAnimation(this, R.anim.anim_translate_door1);
+        doorAnimation4 = AnimationUtils.loadAnimation(this, R.anim.anim_translate_door_close);
         final ImageView v4 = (ImageView) this.findViewById(R.id.main_door4);
 
         new Thread(new Runnable() {
@@ -705,7 +826,7 @@ public class MainActivity extends AppCompatActivity
             }
         }).start();
 
-        doorAnimation5 = AnimationUtils.loadAnimation(this, R.anim.anim_translate_door1);
+        doorAnimation5 = AnimationUtils.loadAnimation(this, R.anim.anim_translate_door_close);
         final ImageView v5 = (ImageView) this.findViewById(R.id.main_door5);
 
         new Thread(new Runnable() {
@@ -725,7 +846,7 @@ public class MainActivity extends AppCompatActivity
             }
         }).start();
 
-        doorAnimation6 = AnimationUtils.loadAnimation(this, R.anim.anim_translate_door1);
+        doorAnimation6 = AnimationUtils.loadAnimation(this, R.anim.anim_translate_door_close);
         final ImageView v6 = (ImageView) this.findViewById(R.id.main_door6);
 
         new Thread(new Runnable() {
@@ -855,14 +976,20 @@ public class MainActivity extends AppCompatActivity
         if (!autoMode) {
             btn_mode.setText("Manual");
         }
+
+        if (Objects.equals(settingsData.getString("doorStatus", ""), "true")) {
+            doorStatus = true;
+            doorAnimationOpen();
+        }
+
     }
 
     private void saveSharedFile() {
         fileEditor.putString("Mode", btn_mode.getText().toString());
         fileEditor.putString("Service", "closed");
         fileEditor.putString("atHome", String.valueOf(atHome));
+        fileEditor.putString("doorStatus", String.valueOf(doorStatus));
         Log.i(TAG, "put atHome: " +String.valueOf(atHome));
         fileEditor.apply();
     }
 }
-
