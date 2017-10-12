@@ -107,7 +107,7 @@ public class MainActivity extends AppCompatActivity
     private boolean autoMode = true;
 
     // Timer to reconnect to the server
-    private int socketInterval = 5000; // 5 seconds by default, can be changed later
+    private int socketInterval = 7000; // 5 seconds by default, can be changed later
     private Handler socketTimer = new Handler();
 
     @Override
@@ -208,8 +208,6 @@ public class MainActivity extends AppCompatActivity
             if (Objects.equals(message, "true")) {
                 myService.updateValues();
                 sSocketservice.stopThread();
-                sSocketservice.updateValues();
-                sSocketservice.startThread();
             }
         }
     };
@@ -504,8 +502,9 @@ public class MainActivity extends AppCompatActivity
                             setTextColor(true);
                         }
                     });
-                    Log.i(TAG, "onConnected\n");
+                    socketIsBound = true;
                     sSocketservice.checkName();
+                    Log.i(TAG, "onConnected\n");
                 }
 
                 @Override
@@ -516,6 +515,7 @@ public class MainActivity extends AppCompatActivity
                             setTextColor(false);
                         }
                     });
+                    socketIsBound = false;
                     Log.i(TAG, "onDisconnected\n");
                 }
 
@@ -530,8 +530,6 @@ public class MainActivity extends AppCompatActivity
         @Override
         public void onServiceDisconnected(ComponentName name) {
             Log.i(TAG, "onSocketServiceDisconnected! ");
-            socketIsBound = false;
-            sSocketservice = null;
         }
     };
 
@@ -543,11 +541,9 @@ public class MainActivity extends AppCompatActivity
         if (val) {
             view.setText("Connected");
             view.setTextColor(greenColor);
-            socketIsBound = true;
         } else {
             view.setText("Disconnected");
             view.setTextColor(redColor);
-            socketIsBound = false;
         }
     }
 
@@ -971,6 +967,12 @@ public class MainActivity extends AppCompatActivity
         if (Objects.equals(settingsData.getString("atHome", ""), "true")) {
             atHome = true;
             Log.i(TAG, "atHome: " +String.valueOf(atHome));
+
+            final TextView view1 = (TextView) findViewById(R.id.txtView_timelock_val);
+            String lockText = "lock ";
+            int redColor = getResources().getColor(R.color.colorRed);
+            view1.setText(lockText);
+            view1.setTextColor(redColor);
         }
 
         if (!autoMode) {

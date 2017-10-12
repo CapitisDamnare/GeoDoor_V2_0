@@ -4,6 +4,7 @@ import android.app.Service;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Binder;
+import android.os.Handler;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
@@ -26,6 +27,7 @@ public class SocketClientHandler extends Service {
 
     private Socket socket;
     private ClientThread client;
+    Thread t = null;
 
     // File data stuff
     private SharedPreferences settingsData;
@@ -88,7 +90,7 @@ public class SocketClientHandler extends Service {
     public void startThread() {
         close = true;
         client = new ClientThread();
-        Thread t = new Thread(client);
+        t = new Thread(client);
         t.start();
     }
 
@@ -116,14 +118,13 @@ public class SocketClientHandler extends Service {
         sendMessage("register:" + strName);
     }
 
-    private class ClientThread implements Runnable {
+    private class ClientThread implements Runnable{
 
         BufferedReader inputStream = null;
         String response = null;
 
         @Override
         public void run() {
-
             // Try to connect to server and setup stream reader
             try {
                 InetAddress serverAddr = InetAddress.getByName(ServerIPAddress);
@@ -144,19 +145,19 @@ public class SocketClientHandler extends Service {
                     listener.onMessage(response);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    close = true;
-                    listener.onDisconnected();
-                    return;
+                    close = false;
                 }
             }
+            Log.i(TAG,"run ended");
+            listener.onDisconnected();
         }
 
         void cancelRead() {
             try {
                 if (!close) {
+                    Log.i(TAG,"cancel read!");
                     socket.close();
                     inputStream.close();
-
                 }
             } catch (Exception e) {
                 listener.onError(e);
