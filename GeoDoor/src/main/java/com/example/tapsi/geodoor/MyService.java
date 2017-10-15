@@ -58,7 +58,7 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
     private final static int INTERVAL = 1000;
     Handler mHandler = new Handler();
     private long timeFromStart = 0;
-    private final long BLOCKTIME = 6000;
+    private final long BLOCKTIME = 600000;
 
     // Event Handling
     private ServiceListener listener;

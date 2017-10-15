@@ -51,7 +51,6 @@ import java.util.List;
 import java.util.Objects;
 
 //Todo: add Exception Handling and safe messages in a file
-//Todo: change font size for Lollipop
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -435,7 +434,7 @@ public class MainActivity extends AppCompatActivity
                     if (!(atHome && myService.isPositionLock())) {
                         atHome = true;
                         nm.notify(uniqueID, notification.build());
-                        sSocketservice.sendMessage("output:Gate1 open");
+                        sSocketservice.sendMessage("output:Gate1 open auto");
                         myService.startRepeatingTask();
                     }
                 }
@@ -476,12 +475,18 @@ public class MainActivity extends AppCompatActivity
                                 switch (finalMsg) {
                                     case "not yet allowed":
                                         Toast.makeText(getApplication(), "not yet allowed", Toast.LENGTH_LONG).show();
+                                        setTextColor(true);
                                         break;
                                     case "allowed":
                                         Toast.makeText(getApplication(), "allowed", Toast.LENGTH_LONG).show();
+                                        setTextColor(true);
                                         break;
                                     case "registered ... waiting for permission":
                                         Toast.makeText(getApplication(), "registered ... waiting for permission", Toast.LENGTH_LONG).show();
+                                        setTextColor(true);
+                                        break;
+                                    case "ping":
+                                        sSocketservice.sendMessage("pong:pong");
                                         break;
                                     case "door1 open":
                                         doorAnimationOpen();
@@ -496,12 +501,6 @@ public class MainActivity extends AppCompatActivity
 
                 @Override
                 public void onConnected() {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            setTextColor(true);
-                        }
-                    });
                     socketIsBound = true;
                     sSocketservice.checkName();
                     Log.i(TAG, "onConnected\n");
@@ -926,7 +925,10 @@ public class MainActivity extends AppCompatActivity
 
     // Open Gate
     private void onClickButton1() {
-        sSocketservice.sendMessage("output:Gate1 open");
+        if (Objects.equals(String.valueOf(btn_mode.getText()), "Automatic"))
+            sSocketservice.sendMessage("output:Gate1 open auto");
+        else
+            sSocketservice.sendMessage("output:Gate1 open");
     }
 
     // Open door
