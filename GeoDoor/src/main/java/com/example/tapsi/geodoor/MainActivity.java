@@ -19,6 +19,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.os.StrictMode;
 import android.preference.PreferenceManager;
 import android.support.v4.app.ActivityCompat;
@@ -109,10 +110,17 @@ public class MainActivity extends AppCompatActivity
     private int socketInterval = 7000; // 5 seconds by default, can be changed later
     private Handler socketTimer = new Handler();
 
+    // Wakelock! Keep the cpu alive!
+    PowerManager pm;
+    PowerManager.WakeLock wl;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
 
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
         StrictMode.setThreadPolicy(policy);
@@ -350,6 +358,7 @@ public class MainActivity extends AppCompatActivity
 
                         // Todo: If permission isn't granted you have to start the app twice for a socket connection
                         sSocketservice.updateValues();
+                        sSocketservice.setWl(wl);
                         sSocketservice.startThread();
                     }
                 }
@@ -357,6 +366,7 @@ public class MainActivity extends AppCompatActivity
                     // For earlier API Versions
                     myService.buildGoogleApiClient();
                     sSocketservice.updateValues();
+                    sSocketservice.setWl(wl);
                     sSocketservice.startThread();
                 }
 
@@ -374,6 +384,7 @@ public class MainActivity extends AppCompatActivity
             if (sSocketservice != null) {
                 if (!socketIsBound) {
                     sSocketservice.stopThread();
+                    sSocketservice.setWl(wl);
                     sSocketservice.updateValues();
                     sSocketservice.startThread();
                 }
