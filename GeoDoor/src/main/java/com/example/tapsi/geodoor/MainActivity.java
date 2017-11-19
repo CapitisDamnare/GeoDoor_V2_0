@@ -1,5 +1,7 @@
 package com.example.tapsi.geodoor;
 
+// Test
+
 import android.Manifest;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -68,6 +70,7 @@ public class MainActivity extends AppCompatActivity
     // Time and Lock stuff
     public boolean atHome = false;
     public boolean doorStatus = false;
+    public boolean test = false;
 
     // Save data stuff
     private SharedPreferences settingsData;
