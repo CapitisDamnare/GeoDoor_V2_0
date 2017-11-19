@@ -1,5 +1,6 @@
 package com.example.tapsi.geodoor;
 
+import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -106,6 +107,7 @@ public class SocketClientHandler extends Service {
     }
 
     // Sending name and a unique Phone identifier
+    @SuppressLint("MissingPermission")
     public void sendMessage(String msg) {
         try {
             if (socket == null)
