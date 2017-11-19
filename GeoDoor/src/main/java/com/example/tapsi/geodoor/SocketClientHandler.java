@@ -46,9 +46,6 @@ public class SocketClientHandler extends Service {
     // Event Handling
     private SocketListener listener;
 
-    // Wakelock! Keep the cpu alive!
-    PowerManager.WakeLock wl;
-
     private final IBinder binder = new SocketBinder();
 
     interface SocketListener {
@@ -59,10 +56,6 @@ public class SocketClientHandler extends Service {
         void onDisconnected();
 
         void onError(Exception e);
-    }
-
-    public void setWl(PowerManager.WakeLock wl) {
-        this.wl = wl;
     }
 
     @Override
@@ -96,13 +89,11 @@ public class SocketClientHandler extends Service {
         client = new ClientThread();
         t = new Thread(client);
         t.start();
-        wl.acquire();
     }
 
     public void stopThread() {
         close = false;
         client.cancelRead();
-        wl.release();
     }
 
     // Sending name and a unique Phone identifier
