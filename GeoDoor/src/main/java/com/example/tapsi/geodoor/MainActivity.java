@@ -123,6 +123,7 @@ public class MainActivity extends AppCompatActivity
 
         pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
+        wl.acquire();
 
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
         StrictMode.setThreadPolicy(policy);
@@ -360,7 +361,6 @@ public class MainActivity extends AppCompatActivity
 
                         // Todo: If permission isn't granted you have to start the app twice for a socket connection
                         sSocketservice.updateValues();
-                        sSocketservice.setWl(wl);
                         sSocketservice.startThread();
                     }
                 }
@@ -368,7 +368,6 @@ public class MainActivity extends AppCompatActivity
                     // For earlier API Versions
                     myService.buildGoogleApiClient();
                     sSocketservice.updateValues();
-                    sSocketservice.setWl(wl);
                     sSocketservice.startThread();
                 }
 
@@ -386,7 +385,6 @@ public class MainActivity extends AppCompatActivity
             if (sSocketservice != null) {
                 if (!socketIsBound) {
                     sSocketservice.stopThread();
-                    sSocketservice.setWl(wl);
                     sSocketservice.updateValues();
                     sSocketservice.startThread();
                 }
@@ -446,6 +444,7 @@ public class MainActivity extends AppCompatActivity
                 public void onOpenGate() {
                     if (!(atHome && myService.isPositionLock())) {
                         atHome = true;
+                        myService.setPositionLock(true);
                         nm.notify(uniqueID, notification.build());
                         sSocketservice.sendMessage("output:Gate1 open auto");
                         myService.startRepeatingTask();
@@ -938,8 +937,10 @@ public class MainActivity extends AppCompatActivity
 
     // Open Gate
     private void onClickButton1() {
-        if (Objects.equals(String.valueOf(btn_mode.getText()), "Automatic"))
+        if (Objects.equals(String.valueOf(btn_mode.getText()), "Automatic")) {
             sSocketservice.sendMessage("output:Gate1 open auto");
+            myService.startRepeatingTask();
+        }
         else
             sSocketservice.sendMessage("output:Gate1 open");
     }
@@ -996,7 +997,6 @@ public class MainActivity extends AppCompatActivity
 
         if (Objects.equals(settingsData.getString("doorStatus", ""), "true")) {
             doorStatus = true;
-            doorAnimationOpen();
         }
 
     }

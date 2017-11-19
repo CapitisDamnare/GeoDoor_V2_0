@@ -186,6 +186,7 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
 
             if (Objects.equals(time, "end")) {
                 listener.onTimeUpdate("00:00:00");
+                positionLock = false;
                 mHandler.removeCallbacks(mHandlerTask);
             } else
                 listener.onTimeUpdate(getCurrentTime());
@@ -201,7 +202,7 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
             if (countDown <= 0)
                 return "end";
 
-            SimpleDateFormat df = new SimpleDateFormat("HH:mm:ss", Locale.GERMANY);
+            SimpleDateFormat df = new SimpleDateFormat("HH:mm:ss");
             timeString = df.format(countDown);
         }
 
