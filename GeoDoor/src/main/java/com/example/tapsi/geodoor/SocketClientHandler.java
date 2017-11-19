@@ -61,7 +61,7 @@ public class SocketClientHandler extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
-        return binder;
+        return null;
     }
 
     // Binder stuff to get the parent class (the actual service class)

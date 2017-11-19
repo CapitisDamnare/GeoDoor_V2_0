@@ -68,8 +68,8 @@ public class MainActivity extends AppCompatActivity
     public boolean wrongSettings = true;
 
     // Time and Lock stuff
-    public boolean atHome = false;
-    public boolean doorStatus = false;
+    //public boolean atHome = false;
+    //public boolean doorStatus = false;
 
     // Save data stuff
     private SharedPreferences settingsData;
@@ -79,20 +79,20 @@ public class MainActivity extends AppCompatActivity
     public static final int MY_PERMISSIONS_REQUESTS = 99;
 
     // Notification stuff
-    NotificationCompat.Builder notification;
-    private static final int uniqueID = 11223344;
-    NotificationManager nm;
+    //NotificationCompat.Builder notification;
+    //private static final int uniqueID = 11223344;
+    //NotificationManager nm;
 
     // Timer for permissions
     private final static int INTERVAL = 1000;
     Handler mHandler = new Handler();
 
     // Service stuff
-    MyService myService;
-    boolean isBound = false;
+    //MyService myService;
+    //boolean isBound = false;
 
-    SocketClientHandler sSocketservice;
-    boolean socketIsBound = false;
+    //SocketClientHandler sSocketservice;
+    //boolean socketIsBound = false;
 
     // Animations and Buttons and Mode boolean
     private Animation doorAnimation1;
@@ -109,24 +109,13 @@ public class MainActivity extends AppCompatActivity
     private boolean autoMode = true;
 
     // Timer to reconnect to the server
-    private int socketInterval = 7000; // 5 seconds by default, can be changed later
-    private Handler socketTimer = new Handler();
-
-    // Wakelock! Keep the cpu alive!
-    PowerManager pm;
-    PowerManager.WakeLock wl;
+    //private int socketInterval = 7000; // 5 seconds by default, can be changed later
+    //private Handler socketTimer = new Handler();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-        wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
-        wl.acquire();
-
-        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
-        StrictMode.setThreadPolicy(policy);
 
         // Handler to save and load data
         settingsData = PreferenceManager.getDefaultSharedPreferences(this);
@@ -176,17 +165,27 @@ public class MainActivity extends AppCompatActivity
             getWindow().setStatusBarColor(getResources().getColor(R.color.colorDrawer));
         }
 
+        // Todo: I dont think i have to check the status of the Service anymore?
         if ((Objects.equals(settingsData.getString("Service", ""), "closed"))) {
-            isBound = false;
-            socketIsBound = false;
+            //isBound = false;
+            //socketIsBound = false;
             //Create a Service
-            Intent intent = new Intent(this, MyService.class);
-            startService(intent);
-            bindService(intent, myServiceConnection, Context.BIND_AUTO_CREATE);
+            Intent startIntent = new Intent(MainActivity.this, SocketClientHandler.class);
+            startIntent.setAction(Constants.ACTION.SOCKET_START);
+            startService(startIntent);
 
-            Intent socketIntent = new Intent(this, SocketClientHandler.class);
-            startService(socketIntent);
-            bindService(socketIntent, socketServiceConnection, Context.BIND_AUTO_CREATE);
+            Intent startGPSIntent = new Intent(MainActivity.this, MyService.class);
+            startGPSIntent.setAction(Constants.ACTION.GPS_START);
+            startService(startGPSIntent);
+
+
+            //Intent intent = new Intent(this, MyService.class);
+            //startService(intent);
+            //bindService(intent, myServiceConnection, Context.BIND_AUTO_CREATE);
+
+            //Intent socketIntent = new Intent(this, SocketClientHandler.class);
+            //startService(socketIntent);
+            //bindService(socketIntent, socketServiceConnection, Context.BIND_AUTO_CREATE);
 
             fileEditor.putString("Service", "started");
             fileEditor.apply();
@@ -199,10 +198,10 @@ public class MainActivity extends AppCompatActivity
         mHandlerTask.run();
 
         // Thread to check socket connection and trigger reconnect
-        socketTask.run();
+        //socketTask.run();
 
         // Create a notification
-        buildNotification();
+        //buildNotification();
 
         // Setup Custom Broadcast Receiver with intentFilter
         LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
@@ -216,6 +215,7 @@ public class MainActivity extends AppCompatActivity
             // Get extra data included in the Intent
             String message = intent.getStringExtra("message");
             if (Objects.equals(message, "true")) {
+                // Todo: Rewrite update methods
                 myService.updateValues();
                 sSocketservice.stopThread();
             }
@@ -301,9 +301,10 @@ public class MainActivity extends AppCompatActivity
                             Manifest.permission.READ_PHONE_STATE)
                             == PackageManager.PERMISSION_GRANTED) {
 
-                        if (myService.getAPIClient() == null) {
-                            myService.buildGoogleApiClient();
-                        }
+                        // Todo: Check if needed
+//                        if (myService.getAPIClient() == null) {
+//                            myService.buildGoogleApiClient();
+//                        }
                     }
 
                 } else {
@@ -320,29 +321,30 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-    private void buildNotification() {
-        // Setup a notification
-        notification = new NotificationCompat.Builder(this);
-        notification.setAutoCancel(true);
+//    private void buildNotification() {
+//        // Setup a notification
+//        notification = new NotificationCompat.Builder(this);
+//        notification.setAutoCancel(true);
+//
+//        notification.setSmallIcon(R.mipmap.ic_launcher);
+//        notification.setWhen(System.currentTimeMillis());
+//        notification.setContentTitle("Tor geöffnet");
+//        notification.setContentText("Click to return");
+//
+//        Intent intent = new Intent(this, MainActivity.class);
+//        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+//        notification.setContentIntent(pendingIntent);
+//        nm = (NotificationManager) getSystemService(Service.NOTIFICATION_SERVICE);
+//    }
 
-        notification.setSmallIcon(R.mipmap.ic_launcher);
-        notification.setWhen(System.currentTimeMillis());
-        notification.setContentTitle("Tor geöffnet");
-        notification.setContentText("Click to return");
-
-        Intent intent = new Intent(this, MainActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        notification.setContentIntent(pendingIntent);
-        nm = (NotificationManager) getSystemService(Service.NOTIFICATION_SERVICE);
-    }
-
+    // Todo Check first permission handling!
     // Wait for successful binding of the service
     Runnable mHandlerTask = new Runnable() {
 
         @Override
         public void run() {
             mHandler.postDelayed(mHandlerTask, INTERVAL);
-            if (isBound && socketIsBound) {
+            //if (isBound && socketIsBound) {
                 // start Handler for periodic up
                 // for some reason it doesn't work in onServiceConnected
                 // so we created a timer function which waits until onServiceConnected was called
@@ -357,40 +359,40 @@ public class MainActivity extends AppCompatActivity
                             ContextCompat.checkSelfPermission(getApplicationContext(),
                                     Manifest.permission.READ_PHONE_STATE)
                             == PackageManager.PERMISSION_GRANTED) {
-                        myService.buildGoogleApiClient();
+                        //myService.buildGoogleApiClient();
 
                         // Todo: If permission isn't granted you have to start the app twice for a socket connection
-                        sSocketservice.updateValues();
-                        sSocketservice.startThread();
+                        //sSocketservice.updateValues();
+                        //sSocketservice.startThread();
                     }
                 }
                 else {
                     // For earlier API Versions
-                    myService.buildGoogleApiClient();
-                    sSocketservice.updateValues();
-                    sSocketservice.startThread();
+                    //myService.buildGoogleApiClient();
+                    //sSocketservice.updateValues();
+                    //sSocketservice.startThread();
                 }
 
                 //After that we stop the timer
                 mHandler.removeCallbacks(mHandlerTask);
-            }
+            //}
         }
     };
 
-    // Check socket connection and trigger reconnect if necessary
-    Runnable socketTask = new Runnable() {
-        @Override
-        public void run() {
-            socketTimer.postDelayed(socketTask, socketInterval);
-            if (sSocketservice != null) {
-                if (!socketIsBound) {
-                    sSocketservice.stopThread();
-                    sSocketservice.updateValues();
-                    sSocketservice.startThread();
-                }
-            }
-        }
-    };
+//    // Check socket connection and trigger reconnect if necessary
+//    Runnable socketTask = new Runnable() {
+//        @Override
+//        public void run() {
+//            socketTimer.postDelayed(socketTask, socketInterval);
+//            if (sSocketservice != null) {
+//                if (!socketIsBound) {
+//                    sSocketservice.stopThread();
+//                    sSocketservice.updateValues();
+//                    sSocketservice.startThread();
+//                }
+//            }
+//        }
+//    };
 
     //GPS Service
     private ServiceConnection myServiceConnection = new ServiceConnection() {
@@ -440,6 +442,7 @@ public class MainActivity extends AppCompatActivity
                     view3.setText(list.get(2));
                 }
 
+                // Todo: Move this Logic to the server
                 @Override
                 public void onOpenGate() {
                     if (!(atHome && myService.isPositionLock())) {
@@ -579,6 +582,13 @@ public class MainActivity extends AppCompatActivity
             intent.putExtra("onStart", false);
             startActivity(intent);
         } else if (id == R.id.nav_info) {
+            Intent stopIntent = new Intent(MainActivity.this, SocketClientHandler.class);
+            stopIntent.setAction(Constants.ACTION.SOCKET_STOP);
+            startService(stopIntent);
+
+            Intent stopGPSIntent = new Intent(MainActivity.this, MyService.class);
+            stopGPSIntent.setAction(Constants.ACTION.GPS_STOP);
+            startService(stopGPSIntent);
 
         } else if (id == R.id.nav_exit) {
             saveSharedFile();
