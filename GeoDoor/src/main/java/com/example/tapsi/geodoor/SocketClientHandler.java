@@ -2,8 +2,10 @@ package com.example.tapsi.geodoor;
 
 import android.annotation.SuppressLint;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Binder;
 import android.os.Handler;
@@ -11,6 +13,7 @@ import android.os.IBinder;
 import android.os.PowerManager;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
+import android.support.v4.content.LocalBroadcastManager;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
@@ -44,36 +47,27 @@ public class SocketClientHandler extends Service {
     private boolean close = true;
     public PrintWriter outputStream = null;
 
-    // Event Handling
-    private SocketListener listener;
-
-    private final IBinder binder = new SocketBinder();
-
-    interface SocketListener {
-        void onMessage(String msg);
-
-        void onConnected();
-
-        void onDisconnected();
-
-        void onError(Exception e);
-    }
-
     @Override
-    public IBinder onBind(Intent intent) {
-        return null;
+    public void onCreate() {
+        super.onCreate();
+        LocalBroadcastManager.getInstance(this).registerReceiver(broadcastReceiver, new IntentFilter("onUpdateData"));
     }
 
-    // Binder stuff to get the parent class (the actual service class)
-    class SocketBinder extends Binder {
-        SocketClientHandler getService() {
-            return SocketClientHandler.this;
+    private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.hasExtra("message")) {
+                final String message = intent.getStringExtra("message");
+                Thread thread = new Thread((new Runnable() {
+                    @Override
+                    public void run() {
+                        Log.i(TAG, "Thread Broadcast:" + message);
+                    }
+                }));
+                thread.start();
+            }
         }
-    }
-
-    public void setCustomObjectListener(SocketListener listener) {
-        this.listener = listener;
-    }
+    };
 
     public void updateValues() {
         settingsData = PreferenceManager.getDefaultSharedPreferences(this);
