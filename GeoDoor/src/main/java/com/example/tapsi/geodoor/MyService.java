@@ -16,6 +16,7 @@ import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -27,9 +28,7 @@ import com.google.android.gms.location.LocationServices;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 
 public class MyService extends Service implements GoogleApiClient.ConnectionCallbacks,
@@ -60,21 +59,16 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
     private long timeFromStart = 0;
     private final long BLOCKTIME = 600000;
 
-    // Event Handling
-    private ServiceListener listener;
-
-    // Interface declaring the Event
-    interface ServiceListener {
-        void onTimeUpdate(String time);
-
-        void onLocationUpdate(List<String> data);
-
-        void onOpenGate();
-    }
-
-    // Constructor
-    public MyService() {
-        this.listener = null;
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent == null) {
+            Log.i(TAG, "Do nothing ");
+        } else if (intent.getAction().equals(Constants.ACTION.GPS_START)) {
+            buildGoogleApiClient();
+        } else if (intent.getAction().equals(Constants.ACTION.GPS_STOP)) {
+            stopGPS();
+        }
+        return Service.START_NOT_STICKY;
     }
 
     public boolean isPositionLock() {
@@ -137,6 +131,7 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
             if (location.getAccuracy() <= 20.00) {
                 if (!positionLock) {
                     positionLock = true;
+                    sendOutBroadcast("toMain",);
                     listener.onOpenGate();
                 }
             }
@@ -147,6 +142,13 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
                 listener.onTimeUpdate("00:00:00");
             }
         }
+    }
+
+    public void sendOutBroadcast(String event, String name, String value) {
+        Intent intent = new Intent(event);
+        intent.putExtra(name, value);
+        intent.pu
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
     public void startGPS() {

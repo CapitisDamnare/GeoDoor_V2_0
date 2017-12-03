@@ -24,6 +24,7 @@ import android.os.IBinder;
 import android.os.PowerManager;
 import android.os.StrictMode;
 import android.preference.PreferenceManager;
+import android.provider.SyncStateContract;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
@@ -50,6 +51,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -78,21 +80,13 @@ public class MainActivity extends AppCompatActivity
     // Permission stuff
     public static final int MY_PERMISSIONS_REQUESTS = 99;
 
-    // Notification stuff
-    //NotificationCompat.Builder notification;
-    //private static final int uniqueID = 11223344;
-    //NotificationManager nm;
-
     // Timer for permissions
     private final static int INTERVAL = 1000;
     Handler mHandler = new Handler();
 
     // Service stuff
-    //MyService myService;
-    //boolean isBound = false;
-
-    //SocketClientHandler sSocketservice;
-    //boolean socketIsBound = false;
+    MyService myService;
+    SocketClientHandler sSocketservice;
 
     // Animations and Buttons and Mode boolean
     private Animation doorAnimation1;
@@ -165,34 +159,15 @@ public class MainActivity extends AppCompatActivity
             getWindow().setStatusBarColor(getResources().getColor(R.color.colorDrawer));
         }
 
-        // Todo: I dont think i have to check the status of the Service anymore?
-        if ((Objects.equals(settingsData.getString("Service", ""), "closed"))) {
-            //isBound = false;
-            //socketIsBound = false;
-            //Create a Service
-            Intent startIntent = new Intent(MainActivity.this, SocketClientHandler.class);
-            startIntent.setAction(Constants.ACTION.SOCKET_START);
-            startService(startIntent);
+        Intent startIntent = new Intent(MainActivity.this, SocketClientHandler.class);
+        startIntent.setAction(Constants.ACTION.SOCKET_START);
+        startService(startIntent);
+        bindService(startIntent, socketServiceConnection, Context.BIND_AUTO_CREATE);
 
-            Intent startGPSIntent = new Intent(MainActivity.this, MyService.class);
-            startGPSIntent.setAction(Constants.ACTION.GPS_START);
-            startService(startGPSIntent);
-
-
-            //Intent intent = new Intent(this, MyService.class);
-            //startService(intent);
-            //bindService(intent, myServiceConnection, Context.BIND_AUTO_CREATE);
-
-            //Intent socketIntent = new Intent(this, SocketClientHandler.class);
-            //startService(socketIntent);
-            //bindService(socketIntent, socketServiceConnection, Context.BIND_AUTO_CREATE);
-
-            fileEditor.putString("Service", "started");
-            fileEditor.apply();
-            Log.i(TAG, "Service started: " + settingsData.getString("Service", ""));
-        } else {
-            Log.i(TAG, "Service not started: " + settingsData.getString("Service", ""));
-        }
+        Intent startGPSIntent = new Intent(MainActivity.this, MyService.class);
+        startGPSIntent.setAction(Constants.ACTION.GPS_START);
+        startService(startGPSIntent);
+        bindService(startGPSIntent, myServiceConnection, Context.BIND_AUTO_CREATE);
 
         // Thread to wait for starting permissin requests
         mHandlerTask.run();
@@ -200,33 +175,77 @@ public class MainActivity extends AppCompatActivity
         // Thread to check socket connection and trigger reconnect
         //socketTask.run();
 
-        // Create a notification
-        //buildNotification();
-
         // Setup Custom Broadcast Receiver with intentFilter
-        LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
-                new IntentFilter("onUpdateData"));
+        LocalBroadcastManager.getInstance(this).registerReceiver(socketReceiver,
+                new IntentFilter(Constants.BROADCAST.EVENT_TOMAIN));
     }
 
     // get Broadcasts
-    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
+    private BroadcastReceiver socketReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             // Get extra data included in the Intent
-            String message = intent.getStringExtra("message");
-            if (Objects.equals(message, "true")) {
-                // Todo: Rewrite update methods
+            if (intent.hasExtra(Constants.BROADCAST.NAME_VALUEUPDATE)) {
                 myService.updateValues();
                 sSocketservice.stopThread();
+                sSocketservice.updateValues();
+                sSocketservice.startThread();
             }
+            if (intent.hasExtra(Constants.BROADCAST.NAME_TIMEUPDATE)) {
+                String time = intent.getStringExtra(Constants.BROADCAST.NAME_TIMEUPDATE);
+                onTimeUpdate(time);
+            }
+            if (intent.hasExtra(Constants.BROADCAST.NAME_LOCATIONUPDATE)) {
+                String distance = intent.getStringExtra(Constants.BROADCAST.NAME_LOCATIONUPDATE);
+                String speed = intent.getStringExtra(Constants.BROADCAST.NAME_LOCATIONUPDATE);
+                String accuracy = intent.getStringExtra(Constants.BROADCAST.NAME_LOCATIONUPDATE);
+
+                List<String> list = new ArrayList<String>();;
+                list.add(distance);
+                list.add(speed);
+                list.add(accuracy);
+                onTimeUpdate(list);
+            }
+
         }
     };
+
+    public void onTimeUpdate(String time) {
+        // GPS Updates
+        final TextView view1 = (TextView) findViewById(R.id.txtView_timelock_val);
+        String lockText = "";
+        if (myService.isPositionLock())
+            lockText = "lock ";
+
+        String text = lockText + time;
+
+        int whiteColor = getResources().getColor(R.color.colorWhite);
+        int redColor = getResources().getColor(R.color.colorRed);
+
+        view1.setText(text);
+        view1.setTextColor(redColor);
+        if (Objects.equals(time, "00:00:00")) {
+            if (Objects.equals(lockText, "")) {
+                view1.setText("OFF");
+                view1.setTextColor(whiteColor);
+            } else {
+                view1.setText("lock");
+            }
+        }
+    }
+
+    public void onLocationUpdate(List<String> list) {
+        final TextView view1 = (TextView) findViewById(R.id.txtView_distance_val);
+        view1.setText(list.get(0));
+        final TextView view = (TextView) findViewById(R.id.txtView_speed_val);
+        view.setText(list.get(1));
+        final TextView view3 = (TextView) findViewById(R.id.txtView_accuracy_val);
+        view3.setText(list.get(2));
+    }
 
     // User Handling with closing and suspending the app
     @Override
     protected void onPostResume() {
-        fileEditor.putString("Service", "started");
-        fileEditor.apply();
         super.onPostResume();
     }
 
@@ -243,7 +262,7 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     protected void onDestroy() {
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(mMessageReceiver);
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(socketReceiver);
         super.onDestroy();
     }
 
@@ -321,21 +340,6 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-//    private void buildNotification() {
-//        // Setup a notification
-//        notification = new NotificationCompat.Builder(this);
-//        notification.setAutoCancel(true);
-//
-//        notification.setSmallIcon(R.mipmap.ic_launcher);
-//        notification.setWhen(System.currentTimeMillis());
-//        notification.setContentTitle("Tor geöffnet");
-//        notification.setContentText("Click to return");
-//
-//        Intent intent = new Intent(this, MainActivity.class);
-//        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-//        notification.setContentIntent(pendingIntent);
-//        nm = (NotificationManager) getSystemService(Service.NOTIFICATION_SERVICE);
-//    }
 
     // Todo Check first permission handling!
     // Wait for successful binding of the service
@@ -345,54 +349,39 @@ public class MainActivity extends AppCompatActivity
         public void run() {
             mHandler.postDelayed(mHandlerTask, INTERVAL);
             //if (isBound && socketIsBound) {
-                // start Handler for periodic up
-                // for some reason it doesn't work in onServiceConnected
-                // so we created a timer function which waits until onServiceConnected was called
+            // start Handler for periodic up
+            // for some reason it doesn't work in onServiceConnected
+            // so we created a timer function which waits until onServiceConnected was called
 
-                // Permissions
-                if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    checkLocationPermission();
-                }
+            // Permissions
+            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                checkLocationPermission();
+            }
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) +
-                            ContextCompat.checkSelfPermission(getApplicationContext(),
-                                    Manifest.permission.READ_PHONE_STATE)
-                            == PackageManager.PERMISSION_GRANTED) {
-                        //myService.buildGoogleApiClient();
-
-                        // Todo: If permission isn't granted you have to start the app twice for a socket connection
-                        //sSocketservice.updateValues();
-                        //sSocketservice.startThread();
-                    }
-                }
-                else {
-                    // For earlier API Versions
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) +
+                        ContextCompat.checkSelfPermission(getApplicationContext(),
+                                Manifest.permission.READ_PHONE_STATE)
+                        == PackageManager.PERMISSION_GRANTED) {
                     //myService.buildGoogleApiClient();
+
+                    // Todo: If permission isn't granted you have to start the app twice for a socket connection
                     //sSocketservice.updateValues();
                     //sSocketservice.startThread();
                 }
+            } else {
+                // For earlier API Versions
+                //myService.buildGoogleApiClient();
+                //sSocketservice.updateValues();
+                //sSocketservice.startThread();
+            }
 
-                //After that we stop the timer
-                mHandler.removeCallbacks(mHandlerTask);
+            //After that we stop the timer
+            mHandler.removeCallbacks(mHandlerTask);
             //}
         }
     };
 
-//    // Check socket connection and trigger reconnect if necessary
-//    Runnable socketTask = new Runnable() {
-//        @Override
-//        public void run() {
-//            socketTimer.postDelayed(socketTask, socketInterval);
-//            if (sSocketservice != null) {
-//                if (!socketIsBound) {
-//                    sSocketservice.stopThread();
-//                    sSocketservice.updateValues();
-//                    sSocketservice.startThread();
-//                }
-//            }
-//        }
-//    };
 
     //GPS Service
     private ServiceConnection myServiceConnection = new ServiceConnection() {
@@ -401,58 +390,13 @@ public class MainActivity extends AppCompatActivity
         public void onServiceConnected(ComponentName name, IBinder service) {
             MyService.MyLocalBinder binder = (MyService.MyLocalBinder) service;
             myService = binder.getService();
-            isBound = true;
             // Custom Events
             myService.setCustomObjectListener(new MyService.ServiceListener() {
+
+
+                // Todo: Change to broadcast
                 @Override
-                public void onTimeUpdate(String time) {
-                    // GPS Updates
-                    final TextView view1 = (TextView) findViewById(R.id.txtView_timelock_val);
-                    String lockText = "";
-                    if (myService.isPositionLock())
-                        lockText = "lock ";
 
-                    String text = lockText + time;
-
-                    int whiteColor = getResources().getColor(R.color.colorWhite);
-                    int redColor = getResources().getColor(R.color.colorRed);
-
-                    view1.setText(text);
-                    view1.setTextColor(redColor);
-                    Log.i(TAG,"time:" + time);
-                    if (Objects.equals(time, "00:00:00")) {
-                        if (Objects.equals(lockText,"")) {
-                            atHome = false;
-                            view1.setText("OFF");
-                            view1.setTextColor(whiteColor);
-                        }
-                        else {
-                            view1.setText("lock");
-                        }
-                    }
-                }
-
-                @Override
-                public void onLocationUpdate(List<String> list) {
-                    final TextView view1 = (TextView) findViewById(R.id.txtView_distance_val);
-                    view1.setText(list.get(0));
-                    final TextView view = (TextView) findViewById(R.id.txtView_speed_val);
-                    view.setText(list.get(1));
-                    final TextView view3 = (TextView) findViewById(R.id.txtView_accuracy_val);
-                    view3.setText(list.get(2));
-                }
-
-                // Todo: Move this Logic to the server
-                @Override
-                public void onOpenGate() {
-                    if (!(atHome && myService.isPositionLock())) {
-                        atHome = true;
-                        myService.setPositionLock(true);
-                        nm.notify(uniqueID, notification.build());
-                        sSocketservice.sendMessage("output:Gate1 open auto");
-                        myService.startRepeatingTask();
-                    }
-                }
             });
         }
 
@@ -950,8 +894,7 @@ public class MainActivity extends AppCompatActivity
         if (Objects.equals(String.valueOf(btn_mode.getText()), "Automatic")) {
             sSocketservice.sendMessage("output:Gate1 open auto");
             myService.startRepeatingTask();
-        }
-        else
+        } else
             sSocketservice.sendMessage("output:Gate1 open");
     }
 
@@ -992,7 +935,7 @@ public class MainActivity extends AppCompatActivity
 
         if (Objects.equals(settingsData.getString("atHome", ""), "true")) {
             atHome = true;
-            Log.i(TAG, "atHome: " +String.valueOf(atHome));
+            Log.i(TAG, "atHome: " + String.valueOf(atHome));
 
             final TextView view1 = (TextView) findViewById(R.id.txtView_timelock_val);
             String lockText = "lock ";
@@ -1016,7 +959,7 @@ public class MainActivity extends AppCompatActivity
         fileEditor.putString("Service", "closed");
         fileEditor.putString("atHome", String.valueOf(atHome));
         fileEditor.putString("doorStatus", String.valueOf(doorStatus));
-        Log.i(TAG, "put atHome: " +String.valueOf(atHome));
+        Log.i(TAG, "put atHome: " + String.valueOf(atHome));
         fileEditor.apply();
     }
 }

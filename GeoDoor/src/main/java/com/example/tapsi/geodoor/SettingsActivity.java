@@ -86,10 +86,8 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     public void sendOutBroadcast(String event, String string) {
-        Log.d(TAG, "sendOutBroadcast Message: " + string);
         Intent intent = new Intent(event);
-        // You can also include some extra data.
-        intent.putExtra("message", string);
+        intent.putExtra("valueUpdate", string);
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
@@ -111,14 +109,13 @@ public class SettingsActivity extends AppCompatActivity {
         if (onStart) {
             fileEditor.putString("Correct", "true");
             fileEditor.apply();
-            Log.i(TAG, "Start new Intent");
 
             Intent intent = new Intent(this, MainActivity.class);
             startActivity(intent);
             finish();
         }
         else {
-            sendOutBroadcast("onUpdateData","true");
+            sendOutBroadcast("toMain","true");
             finish();
         }
     }
