@@ -28,6 +28,8 @@ import com.google.android.gms.location.LocationServices;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
@@ -95,6 +97,7 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
+        Log.i(TAG, "GPSConnected Start");
         mLocationRequest = new LocationRequest();
         mLocationRequest.setInterval(300);
         mLocationRequest.setFastestInterval(300);
@@ -121,25 +124,32 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
         mLastLocation = location;
         float distance = mLastLocation.distanceTo(homeLocation);
 
-        List<String> list = new ArrayList<String>();
+        ArrayList<String> list = new ArrayList<String>();
         list.add(getStringValue(distance, 0));
         list.add(getStringValue(location.getSpeed(), 1));
         list.add(getStringValue(location.getAccuracy(), 0));
 
-        listener.onLocationUpdate(list);
+        Log.i(TAG, list.get(0));
+        Log.i(TAG, list.get(1));
+        Log.i(TAG, list.get(2));
+
+        sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_LOCATIONUPDATE, list);
+        //listener.onLocationUpdate(list);
         if (distance < radius) {
             if (location.getAccuracy() <= 20.00) {
                 if (!positionLock) {
                     positionLock = true;
-                    sendOutBroadcast("toMain",);
-                    listener.onOpenGate();
+                    sendOutBroadcast(Constants.BROADCAST.EVENT_TOSOCKET, Constants.BROADCAST.NAME_OPENGATE, "true");
+                    sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_OPENGATE, "true");
+                    startRepeatingTask();
                 }
             }
         }
         if (distance > radius) {
             if (location.getAccuracy() <= 20.00) {
                 positionLock = false;
-                listener.onTimeUpdate("00:00:00");
+                sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_TIMEUPDATE, "00:00:00");
+                //listener.onTimeUpdate("00:00:00");
             }
         }
     }
@@ -147,7 +157,14 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
     public void sendOutBroadcast(String event, String name, String value) {
         Intent intent = new Intent(event);
         intent.putExtra(name, value);
-        intent.pu
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+    }
+
+    public void sendOutBroadcast(String event, String name, ArrayList<String> value) {
+        Intent intent = new Intent(event);
+        Bundle bundle = new Bundle();
+        bundle.putStringArrayList(name, value);
+        intent.putExtras(bundle);
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
@@ -187,11 +204,15 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
             String time = getCurrentTime();
 
             if (Objects.equals(time, "end")) {
-                listener.onTimeUpdate("00:00:00");
+                sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_TIMEUPDATE, "00:00:00");
+                //listener.onTimeUpdate("00:00:00");
                 positionLock = false;
                 mHandler.removeCallbacks(mHandlerTask);
-            } else
-                listener.onTimeUpdate(getCurrentTime());
+            } else {
+                sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_TIMEUPDATE, getCurrentTime());
+                //listener.onTimeUpdate(getCurrentTime());
+            }
+
         }
     };
 
@@ -223,11 +244,6 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
     // stop the Handler
     public void stopRepeatingTask() {
         mHandler.removeCallbacks(mHandlerTask);
-    }
-
-    // Needed for the class to call a the listener for the events
-    public void setCustomObjectListener(ServiceListener listener) {
-        this.listener = listener;
     }
 
     public float getLastDistance() {
@@ -289,10 +305,6 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
         homeLocation.setLongitude(fLongitude);
         homeLocation.setAltitude(fAltitude);
         radius = fRadius;
-    }
-
-    public void killMe() {
-        android.os.Process.killProcess(android.os.Process.myPid());
     }
 
 }

@@ -85,7 +85,7 @@ public class MainActivity extends AppCompatActivity
     Handler mHandler = new Handler();
 
     // Service stuff
-    MyService myService;
+    MyService myService = null;
     SocketClientHandler sSocketservice;
 
     // Animations and Buttons and Mode boolean
@@ -110,6 +110,9 @@ public class MainActivity extends AppCompatActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+        StrictMode.setThreadPolicy(policy);
 
         // Handler to save and load data
         settingsData = PreferenceManager.getDefaultSharedPreferences(this);
@@ -159,15 +162,16 @@ public class MainActivity extends AppCompatActivity
             getWindow().setStatusBarColor(getResources().getColor(R.color.colorDrawer));
         }
 
+        Log.i(TAG, "got here");
         Intent startIntent = new Intent(MainActivity.this, SocketClientHandler.class);
         startIntent.setAction(Constants.ACTION.SOCKET_START);
         startService(startIntent);
         bindService(startIntent, socketServiceConnection, Context.BIND_AUTO_CREATE);
 
-        Intent startGPSIntent = new Intent(MainActivity.this, MyService.class);
-        startGPSIntent.setAction(Constants.ACTION.GPS_START);
-        startService(startGPSIntent);
-        bindService(startGPSIntent, myServiceConnection, Context.BIND_AUTO_CREATE);
+//        Intent startGPSIntent = new Intent(MainActivity.this, MyService.class);
+//        startGPSIntent.setAction(Constants.ACTION.GPS_START);
+//        startService(startGPSIntent);
+//        bindService(startGPSIntent, myServiceConnection, Context.BIND_AUTO_CREATE);
 
         // Thread to wait for starting permissin requests
         mHandlerTask.run();
@@ -196,15 +200,45 @@ public class MainActivity extends AppCompatActivity
                 onTimeUpdate(time);
             }
             if (intent.hasExtra(Constants.BROADCAST.NAME_LOCATIONUPDATE)) {
-                String distance = intent.getStringExtra(Constants.BROADCAST.NAME_LOCATIONUPDATE);
-                String speed = intent.getStringExtra(Constants.BROADCAST.NAME_LOCATIONUPDATE);
-                String accuracy = intent.getStringExtra(Constants.BROADCAST.NAME_LOCATIONUPDATE);
+                Bundle bundle = intent.getExtras();
+                ArrayList<String> list = new ArrayList<String>();
+                list = bundle.getStringArrayList(Constants.BROADCAST.NAME_LOCATIONUPDATE);
+                onLocationUpdate(list);
+            }
+            if (intent.hasExtra(Constants.BROADCAST.NAME_ALLOWED)) {
+                Toast.makeText(getApplication(), "allowed", Toast.LENGTH_LONG).show();
+                setTextColor(true);
 
-                List<String> list = new ArrayList<String>();;
-                list.add(distance);
-                list.add(speed);
-                list.add(accuracy);
-                onTimeUpdate(list);
+            }
+            if (intent.hasExtra(Constants.BROADCAST.NAME_NOTYETALLOWED)) {
+                Toast.makeText(getApplication(), "not yet allowed", Toast.LENGTH_LONG).show();
+                setTextColor(true);
+            }
+            if (intent.hasExtra(Constants.BROADCAST.NAME_REGISTERED)) {
+                Toast.makeText(getApplication(), "registered ... waiting for permission", Toast.LENGTH_LONG).show();
+                setTextColor(true);
+            }
+            if (intent.hasExtra(Constants.BROADCAST.NAME_DOOR1OPEN)) {
+                doorAnimationOpen();
+            }
+            if (intent.hasExtra(Constants.BROADCAST.NAME_DOOR1CLOSE)) {
+                doorAnimationClose();
+            }
+            if (intent.hasExtra(Constants.BROADCAST.NAME_SOCKETCONNECTED)) {
+                Log.i(TAG, "onConnected\n");
+            }
+            if (intent.hasExtra(Constants.BROADCAST.NAME_SOCKETDISONNECTED)) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        setTextColor(false);
+                    }
+                });
+                Log.i(TAG, "onDisconnected\n");
+            }
+            if (intent.hasExtra(Constants.BROADCAST.NAME_GPSCONNECTED)) {
+                myService = sSocketservice.getMyService();
+                Log.i(TAG, "onGPSConnected\n");
             }
 
         }
@@ -382,112 +416,18 @@ public class MainActivity extends AppCompatActivity
         }
     };
 
-
-    //GPS Service
-    private ServiceConnection myServiceConnection = new ServiceConnection() {
-
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            MyService.MyLocalBinder binder = (MyService.MyLocalBinder) service;
-            myService = binder.getService();
-            // Custom Events
-            myService.setCustomObjectListener(new MyService.ServiceListener() {
-
-
-                // Todo: Change to broadcast
-                @Override
-
-            });
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            Log.i(TAG, "onServiceDisconnected! ");
-            isBound = false;
-            myService = null;
-        }
-    };
-
     // Socket Service
     private ServiceConnection socketServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            Log.i(TAG, "onSocketServiceConnected!");
+            //Log.i(TAG, "onSocketServiceConnected!");
             SocketClientHandler.SocketBinder sBinder = (SocketClientHandler.SocketBinder) service;
             sSocketservice = sBinder.getService();
-            socketIsBound = true;
-
-            // Custom Events
-            sSocketservice.setCustomObjectListener(new SocketClientHandler.SocketListener() {
-
-                @Override
-                public void onMessage(String msg) {
-                    Log.i(TAG, "onMessage: " + msg);
-                    String messageTemp = msg;
-                    final String command = messageTemp.substring(0, messageTemp.indexOf(":"));
-                    msg = messageTemp.replace(command + ":", "");
-                    final String finalMsg = msg;
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (Objects.equals(command, "answer")) {
-                                switch (finalMsg) {
-                                    case "not yet allowed":
-                                        Toast.makeText(getApplication(), "not yet allowed", Toast.LENGTH_LONG).show();
-                                        setTextColor(true);
-                                        break;
-                                    case "allowed":
-                                        Toast.makeText(getApplication(), "allowed", Toast.LENGTH_LONG).show();
-                                        setTextColor(true);
-                                        break;
-                                    case "registered ... waiting for permission":
-                                        Toast.makeText(getApplication(), "registered ... waiting for permission", Toast.LENGTH_LONG).show();
-                                        setTextColor(true);
-                                        break;
-                                    case "ping":
-                                        sSocketservice.sendMessage("pong:pong");
-                                        break;
-                                    case "door1 open":
-                                        doorAnimationOpen();
-                                        break;
-                                    case "door1 close":
-                                        doorAnimationClose();
-                                }
-                            }
-                        }
-                    });
-                }
-
-                @Override
-                public void onConnected() {
-                    socketIsBound = true;
-                    sSocketservice.checkName();
-                    Log.i(TAG, "onConnected\n");
-                }
-
-                @Override
-                public void onDisconnected() {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            setTextColor(false);
-                        }
-                    });
-                    socketIsBound = false;
-                    Log.i(TAG, "onDisconnected\n");
-                }
-
-                @Override
-                public void onError(Exception e) {
-                    Log.i(TAG, "got Exception\n");
-                    e.printStackTrace();
-                }
-            });
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            Log.i(TAG, "onSocketServiceDisconnected! ");
+            //Log.i(TAG, "onSocketServiceDisconnected! ");
         }
     };
 
@@ -526,6 +466,9 @@ public class MainActivity extends AppCompatActivity
             intent.putExtra("onStart", false);
             startActivity(intent);
         } else if (id == R.id.nav_info) {
+
+
+        } else if (id == R.id.nav_exit) {
             Intent stopIntent = new Intent(MainActivity.this, SocketClientHandler.class);
             stopIntent.setAction(Constants.ACTION.SOCKET_STOP);
             startService(stopIntent);
@@ -533,10 +476,9 @@ public class MainActivity extends AppCompatActivity
             Intent stopGPSIntent = new Intent(MainActivity.this, MyService.class);
             stopGPSIntent.setAction(Constants.ACTION.GPS_STOP);
             startService(stopGPSIntent);
-
-        } else if (id == R.id.nav_exit) {
             saveSharedFile();
-            moveTaskToBack(true);
+            this.finish();
+            //moveTaskToBack(true);
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -615,7 +557,6 @@ public class MainActivity extends AppCompatActivity
 
     // Door Animation (Open and Close)
     private void doorAnimationOpen() {
-        doorStatus = true;
         doorAnimation1 = AnimationUtils.loadAnimation(this, R.anim.anim_translate_door_open);
         final ImageView v1 = (ImageView) this.findViewById(R.id.main_door6);
         v1.startAnimation(doorAnimation1);
@@ -722,7 +663,6 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void doorAnimationClose() {
-        doorStatus = false;
         doorAnimation1 = AnimationUtils.loadAnimation(this, R.anim.anim_translate_door_close);
         final ImageView v1 = (ImageView) this.findViewById(R.id.main_door1);
         v1.startAnimation(doorAnimation1);
@@ -908,18 +848,18 @@ public class MainActivity extends AppCompatActivity
         if (autoMode) {
             autoMode = false;
             btn_mode.setText("Manual");
-            if (!isBound) {
-                Toast.makeText(this, "GPS not ready yet! - ", Toast.LENGTH_LONG).show();
-                return;
-            }
+//            if (!isBound) {
+//                Toast.makeText(this, "GPS not ready yet! - ", Toast.LENGTH_LONG).show();
+//                return;
+//            }
             myService.stopGPS();
         } else {
 
             // Workaround for to fast clicking!
-            if (!isBound) {
-                Toast.makeText(this, "GPS not ready yet! - ", Toast.LENGTH_LONG).show();
-                return;
-            }
+//            if (!isBound) {
+//                Toast.makeText(this, "GPS not ready yet! - ", Toast.LENGTH_LONG).show();
+//                return;
+//            }
 
             autoMode = true;
             btn_mode.setText("Automatic");
@@ -934,8 +874,8 @@ public class MainActivity extends AppCompatActivity
         }
 
         if (Objects.equals(settingsData.getString("atHome", ""), "true")) {
-            atHome = true;
-            Log.i(TAG, "atHome: " + String.valueOf(atHome));
+            //atHome = true;
+            //Log.i(TAG, "atHome: " + String.valueOf(atHome));
 
             final TextView view1 = (TextView) findViewById(R.id.txtView_timelock_val);
             String lockText = "lock ";
@@ -949,7 +889,7 @@ public class MainActivity extends AppCompatActivity
         }
 
         if (Objects.equals(settingsData.getString("doorStatus", ""), "true")) {
-            doorStatus = true;
+            //doorStatus = true;
         }
 
     }
@@ -957,9 +897,8 @@ public class MainActivity extends AppCompatActivity
     private void saveSharedFile() {
         fileEditor.putString("Mode", btn_mode.getText().toString());
         fileEditor.putString("Service", "closed");
-        fileEditor.putString("atHome", String.valueOf(atHome));
-        fileEditor.putString("doorStatus", String.valueOf(doorStatus));
-        Log.i(TAG, "put atHome: " + String.valueOf(atHome));
+        //fileEditor.putString("atHome", String.valueOf(atHome));
+        //fileEditor.putString("doorStatus", String.valueOf(doorStatus));
         fileEditor.apply();
     }
 }

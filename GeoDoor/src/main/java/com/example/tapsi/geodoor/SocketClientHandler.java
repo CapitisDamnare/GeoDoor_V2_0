@@ -6,9 +6,11 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.os.Binder;
 import android.os.Handler;
@@ -51,24 +53,37 @@ public class SocketClientHandler extends Service {
     private String ServerIPAddress;
     private int ipPort;
 
-    private boolean close = true;
+    private boolean close = false;
     public PrintWriter outputStream = null;
 
     // Notification stuff
     NotificationCompat.Builder builder;
     NotificationManager nm;
 
+    MyService myService;
+
     private final IBinder binder = new SocketBinder();
+
+    public MyService getMyService() {
+        return myService;
+    }
 
     @Override
     public void onCreate() {
         super.onCreate();
-        LocalBroadcastManager.getInstance(this).registerReceiver(broadcastReceiver, new IntentFilter("onUpdateData"));
+        LocalBroadcastManager.getInstance(this).registerReceiver(broadcastReceiver, new IntentFilter(Constants.BROADCAST.EVENT_TOSOCKET));
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        Intent startGPSIntent = new Intent(SocketClientHandler.this, MyService.class);
+        startGPSIntent.setAction(Constants.ACTION.GPS_START);
+        startService(startGPSIntent);
+        bindService(startGPSIntent, myServiceConnection, Context.BIND_AUTO_CREATE);
+
+        updateValues();
         if (intent == null) {
+            updateValues();
             Log.i(TAG, "Do nothing ");
         } else if (intent.getAction().equals(Constants.ACTION.SOCKET_START)) {
             if (!close) {
@@ -127,27 +142,46 @@ public class SocketClientHandler extends Service {
     private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (intent.hasExtra("message")) {
-                final String message = intent.getStringExtra("message");
-                Thread thread = new Thread((new Runnable() {
-                    @Override
-                    public void run() {
-                        Log.i(TAG, "Thread Broadcast:" + message);
-                    }
-                }));
-                thread.start();
+//            if (intent.hasExtra("message")) {
+//                final String message = intent.getStringExtra("message");
+//                Thread thread = new Thread((new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        Log.i(TAG, "Thread Broadcast:" + message);
+//                    }
+//                }));
+//                thread.start();
+//            }
+            if (intent.hasExtra(Constants.BROADCAST.NAME_OPENGATE)) {
+                onOpenGate();
             }
         }
     };
 
-    public void sendOutBroadcast(String string) {
-        Intent intent = new Intent("onMain");
-        // You can also include some extra data.
-        intent.putExtra("message", string);
+    //GPS Service
+    private ServiceConnection myServiceConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            MyService.MyLocalBinder binder = (MyService.MyLocalBinder) service;
+            myService = binder.getService();
+            sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_GPSCONNECTED, "true");
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            Log.i(TAG, "onServiceDisconnected! ");
+            sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_GPSDISCONNECTED, "true");
+            myService = null;
+        }
+    };
+
+    public void sendOutBroadcast(String event, String name, String value) {
+        Intent intent = new Intent(event);
+        intent.putExtra(name, value);
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
-    // Todo: Check when to update data
     public void updateValues() {
         settingsData = PreferenceManager.getDefaultSharedPreferences(this);
 
@@ -186,24 +220,28 @@ public class SocketClientHandler extends Service {
             switch (finalMsg) {
                 case "not yet allowed":
                     Log.i(TAG, "onMessage: " + "not yet allowed");
+                    sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_NOTYETALLOWED, "true");
                     break;
                 case "allowed":
                     Log.i(TAG, "onMessage: " + "allowed");
+                    sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_ALLOWED, "true");
                     break;
                 case "registered ... waiting for permission":
                     Log.i(TAG, "onMessage: " + "registered ... waiting for permission");
+                    sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_REGISTERED, "true");
                     break;
                 case "ping":
-                    Log.i(TAG, "onMessage: " + "ping");
                     sendMessage("pong:pong");
-                    nm.notify(Constants.NOTIFICATION_ID.SOCKET_SERVICE_TEMP, builder.build());
-                    sendOutBroadcast("got ping ... sending pong");
+                    //nm.notify(Constants.NOTIFICATION_ID.SOCKET_SERVICE_TEMP, builder.build());
+                    //sendOutBroadcast("got ping ... sending pong");
                     break;
                 case "door1 open":
                     Log.i(TAG, "onMessage: " + "door1 open");
+                    sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_DOOR1OPEN, "true");
                     break;
                 case "door1 close":
                     Log.i(TAG, "onMessage: " + "door1 close");
+                    sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_DOOR1CLOSE, "true");
                     break;
             }
         }
@@ -244,13 +282,8 @@ public class SocketClientHandler extends Service {
     }
 
     public void onOpenGate() {
-        if (!(atHome && myService.isPositionLock())) {
-            atHome = true;
-            myService.setPositionLock(true);
-            nm.notify(uniqueID, notification.build());
-            sSocketservice.sendMessage("output:Gate1 open auto");
-            myService.startRepeatingTask();
-        }
+        nm.notify(Constants.NOTIFICATION_ID.SOCKET_SERVICE_TEMP, builder.build());
+        sendMessage("output:Gate1 open auto");
     }
 
     private class ClientThread implements Runnable {
@@ -272,6 +305,7 @@ public class SocketClientHandler extends Service {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+            checkName();
 
             while (close) {
                 try {
