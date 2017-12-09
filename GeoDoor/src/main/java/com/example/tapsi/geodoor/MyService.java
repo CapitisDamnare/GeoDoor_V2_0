@@ -83,6 +83,7 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
 
     // Gps Google API
     public synchronized void buildGoogleApiClient() {
+        Log.i(TAG, "buildClient");
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
@@ -97,7 +98,6 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
-        Log.i(TAG, "GPSConnected Start");
         mLocationRequest = new LocationRequest();
         mLocationRequest.setInterval(300);
         mLocationRequest.setFastestInterval(300);
@@ -111,12 +111,12 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
 
     @Override
     public void onConnectionSuspended(int i) {
-
+        Log.i(TAG, "onConnectionSuspended");
     }
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-
+        Log.i(TAG, "onConnectionFailed");;
     }
 
     @Override

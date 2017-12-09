@@ -162,16 +162,15 @@ public class MainActivity extends AppCompatActivity
             getWindow().setStatusBarColor(getResources().getColor(R.color.colorDrawer));
         }
 
-        Log.i(TAG, "got here");
         Intent startIntent = new Intent(MainActivity.this, SocketClientHandler.class);
         startIntent.setAction(Constants.ACTION.SOCKET_START);
         startService(startIntent);
         bindService(startIntent, socketServiceConnection, Context.BIND_AUTO_CREATE);
 
-//        Intent startGPSIntent = new Intent(MainActivity.this, MyService.class);
-//        startGPSIntent.setAction(Constants.ACTION.GPS_START);
-//        startService(startGPSIntent);
-//        bindService(startGPSIntent, myServiceConnection, Context.BIND_AUTO_CREATE);
+        Intent startGPSIntent = new Intent(MainActivity.this, MyService.class);
+        startGPSIntent.setAction(Constants.ACTION.GPS_START);
+        startService(startGPSIntent);
+        bindService(startGPSIntent, myServiceConnection, Context.BIND_AUTO_CREATE);
 
         // Thread to wait for starting permissin requests
         mHandlerTask.run();
@@ -183,6 +182,24 @@ public class MainActivity extends AppCompatActivity
         LocalBroadcastManager.getInstance(this).registerReceiver(socketReceiver,
                 new IntentFilter(Constants.BROADCAST.EVENT_TOMAIN));
     }
+
+    //GPS Service
+    private ServiceConnection myServiceConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            MyService.MyLocalBinder binder = (MyService.MyLocalBinder) service;
+            myService = binder.getService();
+            //sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_GPSCONNECTED, "true");
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            Log.i(TAG, "onServiceDisconnected! ");
+            //sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_GPSDISCONNECTED, "true");
+            myService = null;
+        }
+    };
 
     // get Broadcasts
     private BroadcastReceiver socketReceiver = new BroadcastReceiver() {
@@ -237,7 +254,7 @@ public class MainActivity extends AppCompatActivity
                 Log.i(TAG, "onDisconnected\n");
             }
             if (intent.hasExtra(Constants.BROADCAST.NAME_GPSCONNECTED)) {
-                myService = sSocketservice.getMyService();
+                //myService = sSocketservice.getMyService();
                 Log.i(TAG, "onGPSConnected\n");
             }
 

@@ -76,16 +76,12 @@ public class SocketClientHandler extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Intent startGPSIntent = new Intent(SocketClientHandler.this, MyService.class);
-        startGPSIntent.setAction(Constants.ACTION.GPS_START);
-        startService(startGPSIntent);
-        bindService(startGPSIntent, myServiceConnection, Context.BIND_AUTO_CREATE);
-
         updateValues();
         if (intent == null) {
             updateValues();
             Log.i(TAG, "Do nothing ");
         } else if (intent.getAction().equals(Constants.ACTION.SOCKET_START)) {
+
             if (!close) {
                 Log.i(TAG, "Received Start Foreground Intent ");
 
