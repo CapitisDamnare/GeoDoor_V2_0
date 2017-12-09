@@ -242,7 +242,7 @@ public class MainActivity extends AppCompatActivity
                 doorAnimationClose();
             }
             if (intent.hasExtra(Constants.BROADCAST.NAME_SOCKETCONNECTED)) {
-                Log.i(TAG, "onConnected\n");
+                Log.i(TAG, "Broadcast onSocketConnected\n");
             }
             if (intent.hasExtra(Constants.BROADCAST.NAME_SOCKETDISONNECTED)) {
                 runOnUiThread(new Runnable() {
@@ -255,7 +255,7 @@ public class MainActivity extends AppCompatActivity
             }
             if (intent.hasExtra(Constants.BROADCAST.NAME_GPSCONNECTED)) {
                 //myService = sSocketservice.getMyService();
-                Log.i(TAG, "onGPSConnected\n");
+                Log.i(TAG, "Broadcast onGPSConnected\n");
             }
 
         }

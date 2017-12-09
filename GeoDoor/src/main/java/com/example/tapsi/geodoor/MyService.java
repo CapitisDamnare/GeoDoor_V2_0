@@ -66,7 +66,12 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
         if (intent == null) {
             Log.i(TAG, "Do nothing ");
         } else if (intent.getAction().equals(Constants.ACTION.GPS_START)) {
-            buildGoogleApiClient();
+            if (getAPIClient() == null) {
+                Log.i(TAG,"APIClient = null");
+                buildGoogleApiClient();
+            }
+            else
+                Log.i(TAG,"APIClient != null");
         } else if (intent.getAction().equals(Constants.ACTION.GPS_STOP)) {
             stopGPS();
         }
@@ -83,7 +88,6 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
 
     // Gps Google API
     public synchronized void buildGoogleApiClient() {
-        Log.i(TAG, "buildClient");
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
@@ -129,9 +133,9 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
         list.add(getStringValue(location.getSpeed(), 1));
         list.add(getStringValue(location.getAccuracy(), 0));
 
-        Log.i(TAG, list.get(0));
-        Log.i(TAG, list.get(1));
-        Log.i(TAG, list.get(2));
+        Log.i(TAG, "list0: " + list.get(0));
+        Log.i(TAG, "list1: " + list.get(1));
+        Log.i(TAG, "list2: " + list.get(2));
 
         sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_LOCATIONUPDATE, list);
         //listener.onLocationUpdate(list);
