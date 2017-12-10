@@ -20,3 +20,6 @@ Die erfolgreiche Verbindung sowie der Status des Tores (offen oder geschlossen) 
 Zusätzlich ist es möglich eine Tür (elektrischer Öffner) an zu steuern.
 Der Service der App soll bei Bedarf permanent im Hintergrund arbeiten dürfen ohne das eine Anzeige (Activity) gestarte werden muss.
 Im Auto Mode wird automatische eine Nachricht gesendet, sobal man sich dem zu Hause einen einstellbaren Wert nähert.
+
+## Status
+Derzeit befindet sich die App in der Beta Testphase und wird in Kürze im Google Appstore frei erhältlich sein.
