@@ -1,4 +1,4 @@
-package com.example.tapsi.geodoor;
+package tapsi.geodoor;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
@@ -21,6 +21,6 @@ public class ExampleInstrumentedTest {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getTargetContext();
 
-        assertEquals("com.example.tapsi.geodoor", appContext.getPackageName());
+        assertEquals("com.example.tapsi.tapsi.geodoor", appContext.getPackageName());
     }
 }

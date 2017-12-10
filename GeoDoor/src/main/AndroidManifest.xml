@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.tapsi.geodoor">
+    package="tapsi.geodoor">
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
@@ -28,7 +28,7 @@
             android:value="@string/google_maps_key" />
 
         <activity
-            android:name="com.example.tapsi.geodoor.MainActivity"
+            android:name="tapsi.geodoor.MainActivity"
             android:label="@string/app_name"
             android:launchMode="singleTop"
             android:screenOrientation="portrait"
@@ -38,14 +38,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name="com.example.tapsi.geodoor.SettingsActivity" />
+        <activity android:name="tapsi.geodoor.SettingsActivity" />
 
         <service
-            android:name="com.example.tapsi.geodoor.GPSService"
+            android:name="tapsi.geodoor.GPSService"
             android:enabled="true"
             android:exported="true" />
         <service
-            android:name="com.example.tapsi.geodoor.SocketService"
+            android:name="tapsi.geodoor.SocketService"
             android:enabled="true"
             android:exported="true" />
     </application>

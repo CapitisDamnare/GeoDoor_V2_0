@@ -1,4 +1,4 @@
-package com.example.tapsi.geodoor;
+package tapsi.geodoor;
 
 import android.annotation.SuppressLint;
 import android.app.Notification;

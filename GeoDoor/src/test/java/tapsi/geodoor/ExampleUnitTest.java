@@ -1,4 +1,4 @@
-package com.example.tapsi.geodoor;
+package tapsi.geodoor;
 
 import org.junit.Test;
 

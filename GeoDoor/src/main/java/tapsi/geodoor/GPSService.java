@@ -1,4 +1,4 @@
-package com.example.tapsi.geodoor;
+package tapsi.geodoor;
 
 import android.Manifest;
 import android.app.Service;
