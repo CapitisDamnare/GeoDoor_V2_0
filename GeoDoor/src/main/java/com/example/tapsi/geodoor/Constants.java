@@ -13,8 +13,6 @@ public class Constants {
     public interface NOTIFICATION_ID {
         public static int SOCKET_SERVICE_FOREGROUND = 101;
         public static int SOCKET_SERVICE_TEMP = 102;
-        public static int GPS_SERVICE = 111;
-
     }
 
     public interface BROADCAST {
