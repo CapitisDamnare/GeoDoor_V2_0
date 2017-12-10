@@ -36,5 +36,6 @@ public class Constants {
         public static String NAME_SOCKETDISONNECTED = "com.tapsi.geodoor.docketDisconnected";
         public static String NAME_GPSCONNECTED = "com.tapsi.geodoor.gpsConnected";
         public static String NAME_GPSDISCONNECTED = "com.tapsi.geodoor.gpsDisconnected";
+        public static String NAME_POSITIONLOCK = "com.tapsi.geodoor.positionLock";
     }
 }

@@ -1,11 +1,6 @@
 package com.example.tapsi.geodoor;
 
-// Foreground Branch
-
 import android.Manifest;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -21,15 +16,12 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.PowerManager;
 import android.os.StrictMode;
 import android.preference.PreferenceManager;
-import android.provider.SyncStateContract;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.content.res.ResourcesCompat;
-import android.support.v7.app.NotificationCompat;
 import android.text.SpannableString;
 import android.text.style.TextAppearanceSpan;
 import android.util.Log;
@@ -66,12 +58,10 @@ public class MainActivity extends AppCompatActivity
     public boolean onPause;
     public boolean onSaveInstance;
 
-    // Will be set to false if some settings are wrong
-    public boolean wrongSettings = true;
-
     // Time and Lock stuff
-    //public boolean atHome = false;
-    //public boolean doorStatus = false;
+    public boolean atHome = false;
+    public boolean doorClosed = true;
+    public boolean permissionGranted = false;
 
     // Save data stuff
     private SharedPreferences settingsData;
@@ -85,8 +75,9 @@ public class MainActivity extends AppCompatActivity
     Handler mHandler = new Handler();
 
     // Service stuff
-    MyService myService = null;
-    SocketClientHandler sSocketservice;
+    GPSService GPSService = null;
+    boolean isServiceBound = false;
+    SocketService sSocketservice;
 
     // Animations and Buttons and Mode boolean
     private Animation doorAnimation1;
@@ -101,10 +92,6 @@ public class MainActivity extends AppCompatActivity
     private Button btn_mode;
 
     private boolean autoMode = true;
-
-    // Timer to reconnect to the server
-    //private int socketInterval = 7000; // 5 seconds by default, can be changed later
-    //private Handler socketTimer = new Handler();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -162,44 +149,20 @@ public class MainActivity extends AppCompatActivity
             getWindow().setStatusBarColor(getResources().getColor(R.color.colorDrawer));
         }
 
-        Intent startIntent = new Intent(MainActivity.this, SocketClientHandler.class);
-        startIntent.setAction(Constants.ACTION.SOCKET_START);
-        startService(startIntent);
-        bindService(startIntent, socketServiceConnection, Context.BIND_AUTO_CREATE);
-
-        Intent startGPSIntent = new Intent(MainActivity.this, MyService.class);
-        startGPSIntent.setAction(Constants.ACTION.GPS_START);
-        startService(startGPSIntent);
-        bindService(startGPSIntent, myServiceConnection, Context.BIND_AUTO_CREATE);
-
         // Thread to wait for starting permissin requests
         mHandlerTask.run();
-
-        // Thread to check socket connection and trigger reconnect
-        //socketTask.run();
 
         // Setup Custom Broadcast Receiver with intentFilter
         LocalBroadcastManager.getInstance(this).registerReceiver(socketReceiver,
                 new IntentFilter(Constants.BROADCAST.EVENT_TOMAIN));
     }
 
-    //GPS Service
-    private ServiceConnection myServiceConnection = new ServiceConnection() {
-
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            MyService.MyLocalBinder binder = (MyService.MyLocalBinder) service;
-            myService = binder.getService();
-            //sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_GPSCONNECTED, "true");
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            Log.i(TAG, "onServiceDisconnected! ");
-            //sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_GPSDISCONNECTED, "true");
-            myService = null;
-        }
-    };
+    private void startForegroundService() {
+        Intent startIntent = new Intent(MainActivity.this, SocketService.class);
+        startIntent.setAction(Constants.ACTION.SOCKET_START);
+        startService(startIntent);
+        bindService(startIntent, socketServiceConnection, Context.BIND_AUTO_CREATE);
+    }
 
     // get Broadcasts
     private BroadcastReceiver socketReceiver = new BroadcastReceiver() {
@@ -207,10 +170,16 @@ public class MainActivity extends AppCompatActivity
         public void onReceive(Context context, Intent intent) {
             // Get extra data included in the Intent
             if (intent.hasExtra(Constants.BROADCAST.NAME_VALUEUPDATE)) {
-                myService.updateValues();
-                sSocketservice.stopThread();
-                sSocketservice.updateValues();
-                sSocketservice.startThread();
+                if(permissionGranted) {
+                    Intent stopIntent = new Intent(MainActivity.this, SocketService.class);
+                    stopIntent.setAction(Constants.ACTION.SOCKET_STOP);
+                    startService(stopIntent);
+
+                    Intent startIntent = new Intent(MainActivity.this, SocketService.class);
+                    startIntent.setAction(Constants.ACTION.SOCKET_START);
+                    startService(startIntent);
+                    bindService(startIntent, socketServiceConnection, Context.BIND_AUTO_CREATE);
+                }
             }
             if (intent.hasExtra(Constants.BROADCAST.NAME_TIMEUPDATE)) {
                 String time = intent.getStringExtra(Constants.BROADCAST.NAME_TIMEUPDATE);
@@ -236,10 +205,12 @@ public class MainActivity extends AppCompatActivity
                 setTextColor(true);
             }
             if (intent.hasExtra(Constants.BROADCAST.NAME_DOOR1OPEN)) {
-                doorAnimationOpen();
+                if (doorClosed)
+                    doorAnimationOpen();
             }
             if (intent.hasExtra(Constants.BROADCAST.NAME_DOOR1CLOSE)) {
-                doorAnimationClose();
+                if (!doorClosed)
+                    doorAnimationClose();
             }
             if (intent.hasExtra(Constants.BROADCAST.NAME_SOCKETCONNECTED)) {
                 Log.i(TAG, "Broadcast onSocketConnected\n");
@@ -251,11 +222,12 @@ public class MainActivity extends AppCompatActivity
                         setTextColor(false);
                     }
                 });
-                Log.i(TAG, "onDisconnected\n");
+                Log.i(TAG, "Broadcast oSocketDisconnected\n");
             }
             if (intent.hasExtra(Constants.BROADCAST.NAME_GPSCONNECTED)) {
-                //myService = sSocketservice.getMyService();
+                GPSService = sSocketservice.getGPSService();
                 Log.i(TAG, "Broadcast onGPSConnected\n");
+                isServiceBound = true;
             }
 
         }
@@ -265,8 +237,9 @@ public class MainActivity extends AppCompatActivity
         // GPS Updates
         final TextView view1 = (TextView) findViewById(R.id.txtView_timelock_val);
         String lockText = "";
-        if (myService.isPositionLock())
-            lockText = "lock ";
+        if  (isServiceBound)
+            if (GPSService.isPositionLock())
+                lockText = "lock ";
 
         String text = lockText + time;
 
@@ -370,12 +343,9 @@ public class MainActivity extends AppCompatActivity
                             Manifest.permission.ACCESS_FINE_LOCATION) + ContextCompat.checkSelfPermission(this,
                             Manifest.permission.READ_PHONE_STATE)
                             == PackageManager.PERMISSION_GRANTED) {
-
-                        // Todo: Check if needed
-//                        if (myService.getAPIClient() == null) {
-//                            myService.buildGoogleApiClient();
-//                        }
                     }
+                    startForegroundService();
+                    permissionGranted = true;
 
                 } else {
 
@@ -391,8 +361,6 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-
-    // Todo Check first permission handling!
     // Wait for successful binding of the service
     Runnable mHandlerTask = new Runnable() {
 
@@ -414,17 +382,12 @@ public class MainActivity extends AppCompatActivity
                         ContextCompat.checkSelfPermission(getApplicationContext(),
                                 Manifest.permission.READ_PHONE_STATE)
                         == PackageManager.PERMISSION_GRANTED) {
-                    //myService.buildGoogleApiClient();
-
-                    // Todo: If permission isn't granted you have to start the app twice for a socket connection
-                    //sSocketservice.updateValues();
-                    //sSocketservice.startThread();
+                    startForegroundService();
+                    permissionGranted = true;
                 }
             } else {
-                // For earlier API Versions
-                //myService.buildGoogleApiClient();
-                //sSocketservice.updateValues();
-                //sSocketservice.startThread();
+                startForegroundService();
+                permissionGranted = true;
             }
 
             //After that we stop the timer
@@ -437,14 +400,12 @@ public class MainActivity extends AppCompatActivity
     private ServiceConnection socketServiceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            //Log.i(TAG, "onSocketServiceConnected!");
-            SocketClientHandler.SocketBinder sBinder = (SocketClientHandler.SocketBinder) service;
+            SocketService.SocketBinder sBinder = (SocketService.SocketBinder) service;
             sSocketservice = sBinder.getService();
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            //Log.i(TAG, "onSocketServiceDisconnected! ");
         }
     };
 
@@ -486,16 +447,12 @@ public class MainActivity extends AppCompatActivity
 
 
         } else if (id == R.id.nav_exit) {
-            Intent stopIntent = new Intent(MainActivity.this, SocketClientHandler.class);
+            Intent stopIntent = new Intent(MainActivity.this, SocketService.class);
             stopIntent.setAction(Constants.ACTION.SOCKET_STOP);
             startService(stopIntent);
 
-            Intent stopGPSIntent = new Intent(MainActivity.this, MyService.class);
-            stopGPSIntent.setAction(Constants.ACTION.GPS_STOP);
-            startService(stopGPSIntent);
             saveSharedFile();
-            this.finish();
-            //moveTaskToBack(true);
+            this.finishAndRemoveTask();
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -850,7 +807,8 @@ public class MainActivity extends AppCompatActivity
     private void onClickButton1() {
         if (Objects.equals(String.valueOf(btn_mode.getText()), "Automatic")) {
             sSocketservice.sendMessage("output:Gate1 open auto");
-            myService.startRepeatingTask();
+            if (isServiceBound)
+               GPSService.startRepeatingTask();
         } else
             sSocketservice.sendMessage("output:Gate1 open");
     }
@@ -865,22 +823,21 @@ public class MainActivity extends AppCompatActivity
         if (autoMode) {
             autoMode = false;
             btn_mode.setText("Manual");
-//            if (!isBound) {
-//                Toast.makeText(this, "GPS not ready yet! - ", Toast.LENGTH_LONG).show();
-//                return;
-//            }
-            myService.stopGPS();
+            if (!isServiceBound) {
+                Toast.makeText(this, "GPS not ready yet! - ", Toast.LENGTH_LONG).show();
+                return;
+            }
+            GPSService.stopGPS();
         } else {
 
             // Workaround for to fast clicking!
-//            if (!isBound) {
-//                Toast.makeText(this, "GPS not ready yet! - ", Toast.LENGTH_LONG).show();
-//                return;
-//            }
-
+            if (!isServiceBound) {
+                Toast.makeText(this, "GPS not ready yet! - ", Toast.LENGTH_LONG).show();
+                return;
+            }
             autoMode = true;
             btn_mode.setText("Automatic");
-            myService.startGPS();
+            GPSService.startGPS();
         }
     }
 
@@ -891,8 +848,7 @@ public class MainActivity extends AppCompatActivity
         }
 
         if (Objects.equals(settingsData.getString("atHome", ""), "true")) {
-            //atHome = true;
-            //Log.i(TAG, "atHome: " + String.valueOf(atHome));
+            atHome = true;
 
             final TextView view1 = (TextView) findViewById(R.id.txtView_timelock_val);
             String lockText = "lock ";
@@ -904,18 +860,11 @@ public class MainActivity extends AppCompatActivity
         if (!autoMode) {
             btn_mode.setText("Manual");
         }
-
-        if (Objects.equals(settingsData.getString("doorStatus", ""), "true")) {
-            //doorStatus = true;
-        }
-
     }
 
     private void saveSharedFile() {
         fileEditor.putString("Mode", btn_mode.getText().toString());
         fileEditor.putString("Service", "closed");
-        //fileEditor.putString("atHome", String.valueOf(atHome));
-        //fileEditor.putString("doorStatus", String.valueOf(doorStatus));
         fileEditor.apply();
     }
 }

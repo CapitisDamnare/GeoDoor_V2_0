@@ -12,6 +12,7 @@ import android.os.Binder;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -21,19 +22,19 @@ import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
 import java.util.Objects;
 
-public class MyService extends Service implements GoogleApiClient.ConnectionCallbacks,
+public class GPSService extends Service implements GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
         LocationListener {
 
@@ -43,11 +44,13 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
     GoogleApiClient mGoogleApiClient;
     Location mLastLocation;
     LocationRequest mLocationRequest;
+    FusedLocationProviderClient mFusedLocationClient;
 
     // File data stuff
     private SharedPreferences settingsData;
+    private SharedPreferences.Editor fileEditor;
 
-    boolean autoMode = true;
+    boolean autoMode;
     boolean positionLock = false;
     Location homeLocation;
     float radius;
@@ -64,16 +67,20 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent == null) {
-            Log.i(TAG, "Do nothing ");
         } else if (intent.getAction().equals(Constants.ACTION.GPS_START)) {
+            updateValues();
             if (getAPIClient() == null) {
-                Log.i(TAG,"APIClient = null");
                 buildGoogleApiClient();
             }
-            else
-                Log.i(TAG,"APIClient != null");
+            else {
+                if (autoMode) {
+                    startGPS();
+                }
+            }
         } else if (intent.getAction().equals(Constants.ACTION.GPS_STOP)) {
             stopGPS();
+            saveSharedFile();
+            stopRepeatingTask();
         }
         return Service.START_NOT_STICKY;
     }
@@ -84,10 +91,13 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
 
     public void setPositionLock(boolean positionLock) {
         this.positionLock = positionLock;
+        saveSharedFile();
+        sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_OPENGATE, "true");
     }
 
     // Gps Google API
     public synchronized void buildGoogleApiClient() {
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
@@ -120,42 +130,11 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-        Log.i(TAG, "onConnectionFailed");;
+        Log.i(TAG, "onConnectionFailed");
     }
 
     @Override
     public void onLocationChanged(Location location) {
-        mLastLocation = location;
-        float distance = mLastLocation.distanceTo(homeLocation);
-
-        ArrayList<String> list = new ArrayList<String>();
-        list.add(getStringValue(distance, 0));
-        list.add(getStringValue(location.getSpeed(), 1));
-        list.add(getStringValue(location.getAccuracy(), 0));
-
-        Log.i(TAG, "list0: " + list.get(0));
-        Log.i(TAG, "list1: " + list.get(1));
-        Log.i(TAG, "list2: " + list.get(2));
-
-        sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_LOCATIONUPDATE, list);
-        //listener.onLocationUpdate(list);
-        if (distance < radius) {
-            if (location.getAccuracy() <= 20.00) {
-                if (!positionLock) {
-                    positionLock = true;
-                    sendOutBroadcast(Constants.BROADCAST.EVENT_TOSOCKET, Constants.BROADCAST.NAME_OPENGATE, "true");
-                    sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_OPENGATE, "true");
-                    startRepeatingTask();
-                }
-            }
-        }
-        if (distance > radius) {
-            if (location.getAccuracy() <= 20.00) {
-                positionLock = false;
-                sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_TIMEUPDATE, "00:00:00");
-                //listener.onTimeUpdate("00:00:00");
-            }
-        }
     }
 
     public void sendOutBroadcast(String event, String name, String value) {
@@ -176,14 +155,47 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
         if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
-            LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, (com.google.android.gms.location.LocationListener) this);
+            mFusedLocationClient.requestLocationUpdates(mLocationRequest, mLocationCallback, Looper.myLooper());
         }
     }
+
+    LocationCallback mLocationCallback = new LocationCallback() {
+        @Override
+        public void onLocationResult(LocationResult locationResult) {
+            for (Location location : locationResult.getLocations()) {
+                mLastLocation = location;
+                float distance = mLastLocation.distanceTo(homeLocation);
+
+                ArrayList<String> list = new ArrayList<String>();
+                list.add(getStringValue(distance, 0));
+                list.add(getStringValue(location.getSpeed(), 1));
+                list.add(getStringValue(location.getAccuracy(), 0));
+
+                sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_LOCATIONUPDATE, list);
+                if (distance < radius) {
+                    if (location.getAccuracy() <= 20.00) {
+                        if (!positionLock) {
+                            setPositionLock(true);
+                            sendOutBroadcast(Constants.BROADCAST.EVENT_TOSOCKET, Constants.BROADCAST.NAME_OPENGATE, "true");
+                            sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_OPENGATE, "true");
+                            startRepeatingTask();
+                        }
+                    }
+                }
+                if (distance > radius) {
+                    if (location.getAccuracy() <= 20.00) {
+                        setPositionLock(false);
+                        sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_TIMEUPDATE, "00:00:00");
+                    }
+                }
+            }
+        }
+    };
 
     public void stopGPS() {
         //stop location updates
         if (mGoogleApiClient != null) {
-            LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, (com.google.android.gms.location.LocationListener) this);
+            mFusedLocationClient.removeLocationUpdates(mLocationCallback);
         }
     }
 
@@ -194,8 +206,8 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
 
     // Binder stuff to get the parent class (the actual service class)
     class MyLocalBinder extends Binder {
-        MyService getService() {
-            return MyService.this;
+        GPSService getService() {
+            return GPSService.this;
         }
     }
 
@@ -203,18 +215,15 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
     Runnable mHandlerTask = new Runnable() {
         @Override
         public void run() {
-            //updateTime();
             mHandler.postDelayed(mHandlerTask, INTERVAL);
             String time = getCurrentTime();
 
             if (Objects.equals(time, "end")) {
                 sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_TIMEUPDATE, "00:00:00");
-                //listener.onTimeUpdate("00:00:00");
-                positionLock = false;
+                setPositionLock(false);
                 mHandler.removeCallbacks(mHandlerTask);
             } else {
                 sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_TIMEUPDATE, getCurrentTime());
-                //listener.onTimeUpdate(getCurrentTime());
             }
 
         }
@@ -289,15 +298,22 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
     // Update important values
     public void updateValues() {
         settingsData = PreferenceManager.getDefaultSharedPreferences(this);
+        fileEditor = settingsData.edit();
 
-        String strMode = settingsData.getString("Mode", "");
+        if (Objects.equals(settingsData.getString("Mode", ""), "Manual")) {
+            autoMode = false;
+        }
+        else
+            autoMode = true;
+
+        if (Objects.equals(settingsData.getString("atHome", ""), "true")) {
+            positionLock = true;
+        }
+
         String strHomeLat = settingsData.getString("HomeLat", "");
         String strHomeLong = settingsData.getString("HomeLong", "");
         String strHomeAlt = settingsData.getString("HomeAlt", "");
         String strRadius = settingsData.getString("Radius", "");
-
-        if (Objects.equals(strMode, "Manual"))
-            autoMode = false;
 
         float fLatitude = Float.parseFloat(strHomeLat);
         float fLongitude = Float.parseFloat(strHomeLong);
@@ -311,4 +327,8 @@ public class MyService extends Service implements GoogleApiClient.ConnectionCall
         radius = fRadius;
     }
 
+    private void saveSharedFile() {
+        fileEditor.putString("atHome", String.valueOf(positionLock));
+        fileEditor.apply();
+    }
 }

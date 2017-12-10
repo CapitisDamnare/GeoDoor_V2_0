@@ -41,11 +41,11 @@
         <activity android:name="com.example.tapsi.geodoor.SettingsActivity" />
 
         <service
-            android:name="com.example.tapsi.geodoor.MyService"
+            android:name="com.example.tapsi.geodoor.GPSService"
             android:enabled="true"
             android:exported="true" />
         <service
-            android:name="com.example.tapsi.geodoor.SocketClientHandler"
+            android:name="com.example.tapsi.geodoor.SocketService"
             android:enabled="true"
             android:exported="true" />
     </application>

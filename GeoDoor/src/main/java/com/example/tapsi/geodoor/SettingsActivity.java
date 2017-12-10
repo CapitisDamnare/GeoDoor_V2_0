@@ -85,9 +85,9 @@ public class SettingsActivity extends AppCompatActivity {
             readData();
     }
 
-    public void sendOutBroadcast(String event, String string) {
+    public void sendOutBroadcast(String event, String name, String value) {
         Intent intent = new Intent(event);
-        intent.putExtra("valueUpdate", string);
+        intent.putExtra(name, value);
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
@@ -115,7 +115,7 @@ public class SettingsActivity extends AppCompatActivity {
             finish();
         }
         else {
-            sendOutBroadcast("toMain","true");
+            sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_VALUEUPDATE, "true");
             finish();
         }
     }

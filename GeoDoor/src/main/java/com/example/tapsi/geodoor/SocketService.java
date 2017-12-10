@@ -13,12 +13,8 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.os.Binder;
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.PowerManager;
 import android.preference.PreferenceManager;
-import android.provider.Settings;
-import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.NotificationCompat;
 import android.telephony.TelephonyManager;
@@ -26,16 +22,14 @@ import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.util.Objects;
 
-public class SocketClientHandler extends Service {
+public class SocketService extends Service {
 
     String TAG = "tapsi_Socket";
 
@@ -46,12 +40,10 @@ public class SocketClientHandler extends Service {
 
     // File data stuff
     private SharedPreferences settingsData;
-    private SharedPreferences.Editor fileEditor;
 
     private String strName;
     private int ServerPort;
     private String ServerIPAddress;
-    private int ipPort;
 
     private boolean close = false;
     public PrintWriter outputStream = null;
@@ -60,12 +52,12 @@ public class SocketClientHandler extends Service {
     NotificationCompat.Builder builder;
     NotificationManager nm;
 
-    MyService myService;
+    GPSService GPSService;
 
     private final IBinder binder = new SocketBinder();
 
-    public MyService getMyService() {
-        return myService;
+    public GPSService getGPSService() {
+        return GPSService;
     }
 
     @Override
@@ -79,11 +71,15 @@ public class SocketClientHandler extends Service {
         updateValues();
         if (intent == null) {
             updateValues();
-            Log.i(TAG, "Do nothing ");
         } else if (intent.getAction().equals(Constants.ACTION.SOCKET_START)) {
 
             if (!close) {
                 Log.i(TAG, "Received Start Foreground Intent ");
+
+                Intent startGPSIntent = new Intent(SocketService.this, GPSService.class);
+                startGPSIntent.setAction(Constants.ACTION.GPS_START);
+                startService(startGPSIntent);
+                bindService(startGPSIntent, myServiceConnection, Context.BIND_AUTO_CREATE);
 
                 Intent notificationIntent = new Intent(this, MainActivity.class);
                 notificationIntent.setAction(Constants.ACTION.SOCKET_MAIN);
@@ -92,17 +88,17 @@ public class SocketClientHandler extends Service {
                 PendingIntent pendingIntent = PendingIntent.getActivity(this, 0,
                         notificationIntent, 0);
 
-                Intent stopIntent = new Intent(this, SocketClientHandler.class);
+                Intent stopIntent = new Intent(this, SocketService.class);
                 stopIntent.setAction(Constants.ACTION.SOCKET_STOP);
                 PendingIntent sstopIntent = PendingIntent.getService(this, 0,
                         stopIntent, 0);
 
                 Notification notification = new NotificationCompat.Builder(this)
-                        .setSmallIcon(android.R.drawable.btn_star)
-                        .setContentTitle("Got ping")
-                        .setContentText("Click to return")
-                        .setTicker("Ticker Text")
-                        .addAction(android.R.drawable.ic_media_next, "Stop", sstopIntent)
+                        .setSmallIcon(R.mipmap.ic_launcher)
+                        .setContentTitle("GeoDoor GPS & Socket Service activated")
+                        .setContentText("Click to launch App")
+                        .setTicker("GeoDoor")
+                        .addAction(android.R.drawable.ic_media_next, "Stop Service", sstopIntent)
                         .setPriority(Notification.PRIORITY_MAX)
                         .setContentIntent(pendingIntent)
                         .setWhen(0)
@@ -113,8 +109,18 @@ public class SocketClientHandler extends Service {
                 buildNotification();
                 startThread();
             }
+            else {
+                checkName();
+            }
         } else if (intent.getAction().equals(Constants.ACTION.SOCKET_STOP)) {
             Log.i(TAG, "Received Stop Foreground Intent");
+            sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_SOCKETDISONNECTED, "true");
+
+            Intent stopGPSIntent = new Intent(SocketService.this, GPSService.class);
+            stopGPSIntent.setAction(Constants.ACTION.GPS_STOP);
+            startService(stopGPSIntent);
+            unbindService(myServiceConnection);
+
             stopThread();
             stopForeground(true);
             stopSelf();
@@ -130,24 +136,14 @@ public class SocketClientHandler extends Service {
 
     // Binder stuff to get the parent class (the actual service class)
     class SocketBinder extends Binder {
-        SocketClientHandler getService() {
-            return SocketClientHandler.this;
+        SocketService getService() {
+            return SocketService.this;
         }
     }
 
     private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-//            if (intent.hasExtra("message")) {
-//                final String message = intent.getStringExtra("message");
-//                Thread thread = new Thread((new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        Log.i(TAG, "Thread Broadcast:" + message);
-//                    }
-//                }));
-//                thread.start();
-//            }
             if (intent.hasExtra(Constants.BROADCAST.NAME_OPENGATE)) {
                 onOpenGate();
             }
@@ -159,16 +155,16 @@ public class SocketClientHandler extends Service {
 
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            MyService.MyLocalBinder binder = (MyService.MyLocalBinder) service;
-            myService = binder.getService();
+            GPSService.MyLocalBinder binder = (GPSService.MyLocalBinder) service;
+            GPSService = binder.getService();
             sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_GPSCONNECTED, "true");
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            Log.i(TAG, "onServiceDisconnected! ");
+            Log.i(TAG, "onGPSServiceDisconnected! ");
             sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_GPSDISCONNECTED, "true");
-            myService = null;
+            GPSService = null;
         }
     };
 
@@ -195,8 +191,8 @@ public class SocketClientHandler extends Service {
 
         builder.setSmallIcon(R.mipmap.ic_launcher);
         builder.setWhen(System.currentTimeMillis());
-        builder.setContentTitle("Got ping");
-        builder.setContentText("Click to return");
+        builder.setContentTitle("Opened door automatically");
+        builder.setContentText("Click to launch App");
         builder.setPriority(Notification.PRIORITY_LOW);
         builder.setWhen(1);
 
@@ -207,7 +203,6 @@ public class SocketClientHandler extends Service {
     }
 
     public void gotMessage(String msg) {
-        Log.i(TAG, "onMessage: " + msg);
         String messageTemp = msg;
         final String command = messageTemp.substring(0, messageTemp.indexOf(":"));
         msg = messageTemp.replace(command + ":", "");
@@ -291,7 +286,6 @@ public class SocketClientHandler extends Service {
         public void run() {
             // Try to connect to server and setup stream reader
             try {
-                Log.i(TAG, "start socket!");
                 InetAddress serverAddr = InetAddress.getByName(ServerIPAddress);
                 socket = new Socket(serverAddr, ServerPort);
                 if (socket == null)
