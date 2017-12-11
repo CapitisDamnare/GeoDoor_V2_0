@@ -19,14 +19,18 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.NotificationCompat;
 import android.telephony.TelephonyManager;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.Objects;
 
 public class SocketService extends Service {
@@ -37,6 +41,7 @@ public class SocketService extends Service {
     private Socket socket;
     private ClientThread client;
     Thread t = null;
+    boolean connected = false;
 
     // File data stuff
     private SharedPreferences settingsData;
@@ -108,25 +113,30 @@ public class SocketService extends Service {
 
                 buildNotification();
                 startThread();
-            }
-            else {
+            } else {
                 checkName();
+                sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_GPSCONNECTED, "true");
+
             }
         } else if (intent.getAction().equals(Constants.ACTION.SOCKET_STOP)) {
-            Log.i(TAG, "Received Stop Foreground Intent");
-            sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_SOCKETDISONNECTED, "true");
-
-            Intent stopGPSIntent = new Intent(SocketService.this, GPSService.class);
-            stopGPSIntent.setAction(Constants.ACTION.GPS_STOP);
-            startService(stopGPSIntent);
-            unbindService(myServiceConnection);
-
-            stopThread();
-            stopForeground(true);
-            stopSelf();
-            LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver);
+            stopForegroundService();
         }
         return Service.START_NOT_STICKY;
+    }
+
+    public void stopForegroundService() {
+        Log.i(TAG, "Received Stop Foreground Intent");
+        sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_SOCKETDISONNECTED, "true");
+
+        Intent stopGPSIntent = new Intent(SocketService.this, GPSService.class);
+        stopGPSIntent.setAction(Constants.ACTION.GPS_STOP);
+        startService(stopGPSIntent);
+        unbindService(myServiceConnection);
+
+        stopThread();
+        stopForeground(true);
+        stopSelf();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver);
     }
 
     @Override
@@ -203,6 +213,8 @@ public class SocketService extends Service {
     }
 
     public void gotMessage(String msg) {
+        if (Objects.equals(msg, "quit"))
+            return;
         String messageTemp = msg;
         final String command = messageTemp.substring(0, messageTemp.indexOf(":"));
         msg = messageTemp.replace(command + ":", "");
@@ -257,7 +269,7 @@ public class SocketService extends Service {
     public void sendMessage(String msg) {
         try {
             if (socket == null)
-                throw new Exception("Couldn't send message to server. No connection?!");
+                return;
             outputStream = new PrintWriter(new BufferedWriter(
                     new OutputStreamWriter(socket.getOutputStream())), true);
             final TelephonyManager tm = (TelephonyManager) getBaseContext().getSystemService(getApplicationContext().TELEPHONY_SERVICE);
@@ -288,19 +300,26 @@ public class SocketService extends Service {
             try {
                 InetAddress serverAddr = InetAddress.getByName(ServerIPAddress);
                 socket = new Socket(serverAddr, ServerPort);
-                if (socket == null)
+                if (socket == null) {
                     throw new Exception("Couldn't connect to server!");
-
+                }
                 inputStream = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                connected = true;
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            checkName();
+            if (connected)
+                checkName();
 
             while (close) {
                 try {
-                    response = inputStream.readLine();
-                    gotMessage(response);
+                    if (inputStream != null) {
+                        response = inputStream.readLine();
+                        gotMessage(response);
+                    } else {
+                        startThread();
+                        return;
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                     if (close)
@@ -313,8 +332,10 @@ public class SocketService extends Service {
         void cancelRead() {
             try {
                 if (!close) {
-                    socket.close();
-                    inputStream.close();
+                    if (socket != null) {
+                        socket.close();
+                        inputStream.close();
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();

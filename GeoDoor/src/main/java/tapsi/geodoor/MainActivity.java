@@ -270,6 +270,10 @@ public class MainActivity extends AppCompatActivity
     // User Handling with closing and suspending the app
     @Override
     protected void onPostResume() {
+        Intent startIntent = new Intent(MainActivity.this, SocketService.class);
+        startIntent.setAction(Constants.ACTION.SOCKET_START);
+        startService(startIntent);
+        bindService(startIntent, socketServiceConnection, Context.BIND_AUTO_CREATE);
         super.onPostResume();
     }
 
@@ -281,6 +285,7 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     protected void onPause() {
+       //unbindService(socketServiceConnection);
         super.onPause();
     }
 
@@ -450,6 +455,7 @@ public class MainActivity extends AppCompatActivity
             Intent stopIntent = new Intent(MainActivity.this, SocketService.class);
             stopIntent.setAction(Constants.ACTION.SOCKET_STOP);
             startService(stopIntent);
+            unbindService(socketServiceConnection);
 
             saveSharedFile();
             this.finishAndRemoveTask();

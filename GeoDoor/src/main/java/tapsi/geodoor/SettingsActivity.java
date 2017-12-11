@@ -115,6 +115,7 @@ public class SettingsActivity extends AppCompatActivity {
         }
         else {
             sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_VALUEUPDATE, "true");
+            fileEditor.putString("atHome", "true");
             finish();
         }
     }
