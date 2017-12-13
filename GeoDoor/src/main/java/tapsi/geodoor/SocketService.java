@@ -19,18 +19,14 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.NotificationCompat;
 import android.telephony.TelephonyManager;
 import android.util.Log;
-import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.util.Objects;
 
 public class SocketService extends Service {
@@ -41,7 +37,6 @@ public class SocketService extends Service {
     private Socket socket;
     private ClientThread client;
     Thread t = null;
-    boolean connected = false;
 
     // File data stuff
     private SharedPreferences settingsData;
@@ -300,26 +295,19 @@ public class SocketService extends Service {
             try {
                 InetAddress serverAddr = InetAddress.getByName(ServerIPAddress);
                 socket = new Socket(serverAddr, ServerPort);
-                if (socket == null) {
+                if (socket == null)
                     throw new Exception("Couldn't connect to server!");
-                }
+
                 inputStream = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                connected = true;
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            if (connected)
-                checkName();
+            checkName();
 
             while (close) {
                 try {
-                    if (inputStream != null) {
-                        response = inputStream.readLine();
-                        gotMessage(response);
-                    } else {
-                        startThread();
-                        return;
-                    }
+                    response = inputStream.readLine();
+                    gotMessage(response);
                 } catch (Exception e) {
                     e.printStackTrace();
                     if (close)
@@ -332,10 +320,8 @@ public class SocketService extends Service {
         void cancelRead() {
             try {
                 if (!close) {
-                    if (socket != null) {
-                        socket.close();
-                        inputStream.close();
-                    }
+                    socket.close();
+                    inputStream.close();
                 }
             } catch (Exception e) {
                 e.printStackTrace();
