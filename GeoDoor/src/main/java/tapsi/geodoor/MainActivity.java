@@ -158,6 +158,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void startForegroundService() {
+        Log.i(TAG, "Start here fore");
         Intent startIntent = new Intent(MainActivity.this, SocketService.class);
         startIntent.setAction(Constants.ACTION.SOCKET_START);
         startService(startIntent);

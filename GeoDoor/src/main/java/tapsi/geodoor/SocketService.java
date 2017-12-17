@@ -27,6 +27,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Objects;
 
 public class SocketService extends Service {
@@ -34,7 +35,7 @@ public class SocketService extends Service {
     String TAG = "tapsi_Socket";
 
     // ClientThread SocketHandler
-    private Socket socket;
+    private Socket socket = null;
     private ClientThread client;
     Thread t = null;
 
@@ -109,9 +110,7 @@ public class SocketService extends Service {
                 buildNotification();
                 startThread();
             } else {
-                checkName();
-                sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_GPSCONNECTED, "true");
-
+                //checkName();
             }
         } else if (intent.getAction().equals(Constants.ACTION.SOCKET_STOP)) {
             stopForegroundService();
@@ -297,21 +296,42 @@ public class SocketService extends Service {
                 socket = new Socket(serverAddr, ServerPort);
                 if (socket == null)
                     throw new Exception("Couldn't connect to server!");
+                socket.setSoTimeout(20*1000);
 
                 inputStream = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             } catch (Exception e) {
+                sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_SOCKETDISONNECTED, "true");
                 e.printStackTrace();
+                if (close) {
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException e1) {
+                        e1.printStackTrace();
+                    }
+                    stopThread();
+                    startThread();
+                }
+                return;
             }
             checkName();
 
             while (close) {
                 try {
                     response = inputStream.readLine();
-                    gotMessage(response);
+                    if (response != null)
+                        gotMessage(response);
                 } catch (Exception e) {
+                    sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_SOCKETDISONNECTED, "true");
                     e.printStackTrace();
-                    if (close)
+                    if (close) {
+                        try {
+                            Thread.sleep(2000);
+                        } catch (InterruptedException e1) {
+                            e1.printStackTrace();
+                        }
+                        stopThread();
                         startThread();
+                    }
                     return;
                 }
             }
@@ -319,10 +339,14 @@ public class SocketService extends Service {
 
         void cancelRead() {
             try {
-                if (!close) {
+                if (socket != null)
                     socket.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
+                if (inputStream != null)
                     inputStream.close();
-                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
