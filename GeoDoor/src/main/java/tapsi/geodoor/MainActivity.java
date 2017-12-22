@@ -47,6 +47,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import org.acra.*;
+import org.acra.annotation.*;
+
 //Todo: add Exception Handling and safe messages in a file
 
 public class MainActivity extends AppCompatActivity
@@ -450,7 +453,7 @@ public class MainActivity extends AppCompatActivity
             intent.putExtra("onStart", false);
             startActivity(intent);
         } else if (id == R.id.nav_info) {
-
+            ACRA.getErrorReporter().handleSilentException(null);
 
         } else if (id == R.id.nav_exit) {
             Intent stopIntent = new Intent(MainActivity.this, SocketService.class);

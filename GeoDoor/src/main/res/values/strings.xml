@@ -41,4 +41,6 @@
 
     <string name="set_debug">Debug</string>
     <string name="set_debug_val">default</string>
+
+    <string name="crash_toast_text">ACRAReport</string>
 </resources>

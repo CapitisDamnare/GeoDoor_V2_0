@@ -36,4 +36,8 @@ public class Constants {
         public static String NAME_GPSDISCONNECTED = "com.tapsi.tapsi.geodoor.gpsDisconnected";
         public static String NAME_POSITIONLOCK = "com.tapsi.tapsi.geodoor.positionLock";
     }
+
+    public interface ACRA {
+        public static String SHARED_PREFERENCES = "com.tapsi.tapsi.geodoor.SHARED_PREFERENCES";
+    }
 }

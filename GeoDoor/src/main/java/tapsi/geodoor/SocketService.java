@@ -20,6 +20,8 @@ import android.support.v7.app.NotificationCompat;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
+import org.acra.ACRA;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.InputStreamReader;
@@ -296,21 +298,11 @@ public class SocketService extends Service {
                 socket = new Socket(serverAddr, ServerPort);
                 if (socket == null)
                     throw new Exception("Couldn't connect to server!");
-                socket.setSoTimeout(20*1000);
+                socket.setSoTimeout(10*1000);
 
                 inputStream = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             } catch (Exception e) {
                 sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_SOCKETDISONNECTED, "true");
-                e.printStackTrace();
-                if (close) {
-                    try {
-                        Thread.sleep(2000);
-                    } catch (InterruptedException e1) {
-                        e1.printStackTrace();
-                    }
-                    stopThread();
-                    startThread();
-                }
                 return;
             }
             checkName();
@@ -318,20 +310,14 @@ public class SocketService extends Service {
             while (close) {
                 try {
                     response = inputStream.readLine();
-                    if (response != null)
+                    if (response != null) {
                         gotMessage(response);
+                        cancelRead();
+                        return;
+                    }
                 } catch (Exception e) {
                     sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_SOCKETDISONNECTED, "true");
                     e.printStackTrace();
-                    if (close) {
-                        try {
-                            Thread.sleep(2000);
-                        } catch (InterruptedException e1) {
-                            e1.printStackTrace();
-                        }
-                        stopThread();
-                        startThread();
-                    }
                     return;
                 }
             }
