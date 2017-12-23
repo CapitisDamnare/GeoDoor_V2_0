@@ -3,6 +3,7 @@
 **Diese Android App sollte in Kombination mit dem Java GeoDoorServer Programm benutzt werden.**
 
 **Link: https://github.com/CapitisDamnare/GeoDoorServer2**
+**Appstore: https://play.google.com/store/apps/details?id=tapsi.geodoor**
 
 ## Vision
 Die App soll sich mit einem Server des "Smart Homes" verbinden und den aktuellen Standort ermittleln.
