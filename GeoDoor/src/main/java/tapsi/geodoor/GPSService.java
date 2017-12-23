@@ -52,6 +52,8 @@ public class GPSService extends Service implements GoogleApiClient.ConnectionCal
 
     boolean autoMode;
     boolean positionLock = false;
+    boolean timeLock = false;
+
     Location homeLocation;
     float radius;
 
@@ -92,7 +94,6 @@ public class GPSService extends Service implements GoogleApiClient.ConnectionCal
     public void setPositionLock(boolean positionLock) {
         this.positionLock = positionLock;
         saveSharedFile();
-        sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_OPENGATE, "true");
     }
 
     // Gps Google API
@@ -174,7 +175,7 @@ public class GPSService extends Service implements GoogleApiClient.ConnectionCal
                 sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_LOCATIONUPDATE, list);
                 if (distance < radius) {
                     if (location.getAccuracy() <= 20.00) {
-                        if (!positionLock) {
+                        if (!positionLock && !timeLock) {
                             setPositionLock(true);
                             sendOutBroadcast(Constants.BROADCAST.EVENT_TOSOCKET, Constants.BROADCAST.NAME_OPENGATE, "true");
                             sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_OPENGATE, "true");
@@ -219,8 +220,8 @@ public class GPSService extends Service implements GoogleApiClient.ConnectionCal
             String time = getCurrentTime();
 
             if (Objects.equals(time, "end")) {
+                timeLock = false;
                 sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_TIMEUPDATE, "00:00:00");
-                setPositionLock(false);
                 mHandler.removeCallbacks(mHandlerTask);
             } else {
                 sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_TIMEUPDATE, getCurrentTime());
@@ -247,6 +248,7 @@ public class GPSService extends Service implements GoogleApiClient.ConnectionCal
 
     // start the Handler
     public void startRepeatingTask() {
+        timeLock = true;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
             timeFromStart = Calendar.getInstance().getTimeInMillis() + BLOCKTIME;
         }
@@ -298,7 +300,6 @@ public class GPSService extends Service implements GoogleApiClient.ConnectionCal
     // Update important values
     public void updateValues() {
         settingsData = PreferenceManager.getDefaultSharedPreferences(this);
-        fileEditor = settingsData.edit();
 
         if (Objects.equals(settingsData.getString("Mode", ""), "Manual")) {
             autoMode = false;
@@ -328,6 +329,8 @@ public class GPSService extends Service implements GoogleApiClient.ConnectionCal
     }
 
     private void saveSharedFile() {
+        settingsData = PreferenceManager.getDefaultSharedPreferences(this);
+        fileEditor = settingsData.edit();
         fileEditor.putString("atHome", String.valueOf(positionLock));
         fileEditor.apply();
     }

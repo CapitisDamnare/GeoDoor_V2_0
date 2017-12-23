@@ -21,7 +21,7 @@
     <string name="txt_status_val">Disconnected</string>
     <string name="txt_status">Status</string>
 
-    <string name="txt_mode_val">Automatic</string>
+    <string name="txt_mode_val">Manual</string>
     <string name="txt_mode">Mode</string>
 
     <string name="txt_timelock_val">OFF</string>
