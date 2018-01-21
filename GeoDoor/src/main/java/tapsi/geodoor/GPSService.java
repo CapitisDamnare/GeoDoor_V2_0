@@ -83,6 +83,7 @@ public class GPSService extends Service implements GoogleApiClient.ConnectionCal
             stopGPS();
             saveSharedFile();
             stopRepeatingTask();
+            stopSelf();
         }
         return Service.START_NOT_STICKY;
     }
@@ -186,7 +187,6 @@ public class GPSService extends Service implements GoogleApiClient.ConnectionCal
                 if (distance > radius) {
                     if (location.getAccuracy() <= 20.00) {
                         setPositionLock(false);
-                        sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_TIMEUPDATE, "00:00:00");
                     }
                 }
             }

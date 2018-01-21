@@ -127,9 +127,9 @@ public class SocketService extends Service {
         else
             Log.i(TAG, "GPSService wasn't bound");
 
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver);
         stopForeground(true);
         stopSelf();
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver);
     }
 
     @Override
@@ -246,7 +246,7 @@ public class SocketService extends Service {
             @Override
             public void run() {
                 try {
-                    sConnector = new SocketConnector(serverPort, serverIPAddress);
+                    sConnector = new SocketConnector(serverPort, serverIPAddress, getBaseContext());
                     final TelephonyManager tm = (TelephonyManager) getBaseContext().getSystemService(getApplicationContext().TELEPHONY_SERVICE);
                     String answer = sConnector.sendMessage(message, tm.getSimSerialNumber());
                     if (answer != null) {

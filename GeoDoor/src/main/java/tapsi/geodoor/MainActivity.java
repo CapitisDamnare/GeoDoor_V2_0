@@ -46,6 +46,8 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import org.acra.*;
 import org.acra.annotation.*;
@@ -447,7 +449,7 @@ public class MainActivity extends AppCompatActivity
             intent.putExtra("onStart", false);
             startActivity(intent);
         } else if (id == R.id.nav_info) {
-            ACRA.getErrorReporter().handleSilentException(null);
+            //ACRA.getErrorReporter().handleSilentException(null);
 
         } else if (id == R.id.nav_exit) {
             Intent stopIntent = new Intent(MainActivity.this, SocketService.class);
@@ -815,11 +817,42 @@ public class MainActivity extends AppCompatActivity
                GPSService.startRepeatingTask();
         } else
             sSocketservice.sendMessage("output:Gate1 open");
+
+        btn_first.setEnabled(false);
+        Timer buttonTimer = new Timer();
+        buttonTimer.schedule(new TimerTask() {
+
+            @Override
+            public void run() {
+                runOnUiThread(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        btn_first.setEnabled(true);
+                    }
+                });
+            }
+        }, 2000);
     }
 
     // Open door
     private void onClickButton2() {
         sSocketservice.sendMessage("output:Door1 open");
+        btn_second.setEnabled(false);
+        Timer buttonTimer = new Timer();
+        buttonTimer.schedule(new TimerTask() {
+
+            @Override
+            public void run() {
+                runOnUiThread(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        btn_second.setEnabled(true);
+                    }
+                });
+            }
+        }, 2000);
     }
 
     // Setting the mode and change Button Text
@@ -850,6 +883,8 @@ public class MainActivity extends AppCompatActivity
             btn_mode.setText(settingsData.getString("Mode", ""));
             autoMode = false;
         }
+        else if (Objects.equals(settingsData.getString("Mode", ""), "Automatic"))
+            autoMode = true;
 
         if (Objects.equals(settingsData.getString("atHome", ""), "true")) {
             atHome = true;
@@ -861,8 +896,8 @@ public class MainActivity extends AppCompatActivity
             view1.setTextColor(redColor);
         }
 
-        if (!autoMode) {
-            btn_mode.setText("Manual");
+        if (autoMode) {
+            btn_mode.setText("Automatic");
         }
     }
 
