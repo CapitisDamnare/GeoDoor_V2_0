@@ -20,6 +20,7 @@ import android.support.v7.app.NotificationCompat;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
+import java.util.Date;
 import java.util.Objects;
 
 import org.acra.ACRA;
@@ -98,7 +99,7 @@ public class SocketService extends Service {
                         .addAction(android.R.drawable.ic_media_next, "Stop Service", sstopIntent)
                         .setPriority(Notification.PRIORITY_MAX)
                         .setContentIntent(pendingIntent)
-                        .setWhen(0)
+                        .setShowWhen(false)
                         .setOngoing(true).build();
 
                 startForeground(Constants.NOTIFICATION_ID.SOCKET_SERVICE_FOREGROUND, notification);
@@ -198,7 +199,7 @@ public class SocketService extends Service {
         builder.setContentTitle("Opened door automatically");
         builder.setContentText("Click to launch App");
         builder.setPriority(Notification.PRIORITY_LOW);
-        builder.setWhen(1);
+        builder.setShowWhen(true);
 
         Intent intent = new Intent(this, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
