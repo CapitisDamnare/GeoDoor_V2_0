@@ -46,11 +46,11 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import org.acra.*;
 import org.acra.annotation.*;
-
-//Todo: add Exception Handling and safe messages in a file
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -94,7 +94,7 @@ public class MainActivity extends AppCompatActivity
     private Button btn_second;
     private Button btn_mode;
 
-    private boolean autoMode = true;
+    private boolean autoMode = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -161,7 +161,6 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void startForegroundService() {
-        Log.i(TAG, "Start here fore");
         Intent startIntent = new Intent(MainActivity.this, SocketService.class);
         startIntent.setAction(Constants.ACTION.SOCKET_START);
         startService(startIntent);
@@ -197,26 +196,27 @@ public class MainActivity extends AppCompatActivity
             }
             if (intent.hasExtra(Constants.BROADCAST.NAME_ALLOWED)) {
                 Toast.makeText(getApplication(), "allowed", Toast.LENGTH_LONG).show();
-                setTextColor(true);
-
             }
             if (intent.hasExtra(Constants.BROADCAST.NAME_NOTYETALLOWED)) {
                 Toast.makeText(getApplication(), "not yet allowed", Toast.LENGTH_LONG).show();
-                setTextColor(true);
             }
             if (intent.hasExtra(Constants.BROADCAST.NAME_REGISTERED)) {
                 Toast.makeText(getApplication(), "registered ... waiting for permission", Toast.LENGTH_LONG).show();
-                setTextColor(true);
             }
             if (intent.hasExtra(Constants.BROADCAST.NAME_DOOR1OPEN)) {
-                if (doorClosed)
+                if (doorClosed) {
+                    doorClosed = false;
                     doorAnimationOpen();
+                }
             }
             if (intent.hasExtra(Constants.BROADCAST.NAME_DOOR1CLOSE)) {
-                if (!doorClosed)
+                if (!doorClosed) {
+                    doorClosed = true;
                     doorAnimationClose();
+                }
             }
             if (intent.hasExtra(Constants.BROADCAST.NAME_SOCKETCONNECTED)) {
+                setTextColor(true);
                 Log.i(TAG, "Broadcast onSocketConnected\n");
             }
             if (intent.hasExtra(Constants.BROADCAST.NAME_SOCKETDISONNECTED)) {
@@ -274,10 +274,6 @@ public class MainActivity extends AppCompatActivity
     // User Handling with closing and suspending the app
     @Override
     protected void onPostResume() {
-        Intent startIntent = new Intent(MainActivity.this, SocketService.class);
-        startIntent.setAction(Constants.ACTION.SOCKET_START);
-        startService(startIntent);
-        bindService(startIntent, socketServiceConnection, Context.BIND_AUTO_CREATE);
         super.onPostResume();
     }
 
@@ -453,7 +449,7 @@ public class MainActivity extends AppCompatActivity
             intent.putExtra("onStart", false);
             startActivity(intent);
         } else if (id == R.id.nav_info) {
-            ACRA.getErrorReporter().handleSilentException(null);
+            //ACRA.getErrorReporter().handleSilentException(null);
 
         } else if (id == R.id.nav_exit) {
             Intent stopIntent = new Intent(MainActivity.this, SocketService.class);
@@ -821,11 +817,42 @@ public class MainActivity extends AppCompatActivity
                GPSService.startRepeatingTask();
         } else
             sSocketservice.sendMessage("output:Gate1 open");
+
+        btn_first.setEnabled(false);
+        Timer buttonTimer = new Timer();
+        buttonTimer.schedule(new TimerTask() {
+
+            @Override
+            public void run() {
+                runOnUiThread(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        btn_first.setEnabled(true);
+                    }
+                });
+            }
+        }, 2000);
     }
 
     // Open door
     private void onClickButton2() {
         sSocketservice.sendMessage("output:Door1 open");
+        btn_second.setEnabled(false);
+        Timer buttonTimer = new Timer();
+        buttonTimer.schedule(new TimerTask() {
+
+            @Override
+            public void run() {
+                runOnUiThread(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        btn_second.setEnabled(true);
+                    }
+                });
+            }
+        }, 2000);
     }
 
     // Setting the mode and change Button Text
@@ -856,6 +883,8 @@ public class MainActivity extends AppCompatActivity
             btn_mode.setText(settingsData.getString("Mode", ""));
             autoMode = false;
         }
+        else if (Objects.equals(settingsData.getString("Mode", ""), "Automatic"))
+            autoMode = true;
 
         if (Objects.equals(settingsData.getString("atHome", ""), "true")) {
             atHome = true;
@@ -867,8 +896,8 @@ public class MainActivity extends AppCompatActivity
             view1.setTextColor(redColor);
         }
 
-        if (!autoMode) {
-            btn_mode.setText("Manual");
+        if (autoMode) {
+            btn_mode.setText("Automatic");
         }
     }
 

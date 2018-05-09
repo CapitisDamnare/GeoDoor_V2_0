@@ -4,6 +4,8 @@
 
 **Link: https://github.com/CapitisDamnare/GeoDoorServer2**
 
+**Appstore: https://play.google.com/store/apps/details?id=tapsi.geodoor**
+
 ## Vision
 Die App soll sich mit einem Server des "Smart Homes" verbinden und den aktuellen Standort ermittleln.
 Ist man auf dem Weg nach Hause so soll die App automatisch das elektrische Tor öffnen, sodass man sofort einparken kann und nicht

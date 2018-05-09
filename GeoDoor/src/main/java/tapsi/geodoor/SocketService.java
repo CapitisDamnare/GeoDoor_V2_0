@@ -20,42 +20,39 @@ import android.support.v7.app.NotificationCompat;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
+import java.util.Date;
+import java.util.Objects;
+
 import org.acra.ACRA;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.net.InetAddress;
-import java.net.Socket;
-import java.net.SocketException;
-import java.util.Objects;
 
 public class SocketService extends Service {
 
     String TAG = "tapsi_Socket";
 
-    // ClientThread SocketHandler
-    private Socket socket = null;
+    // Thread for periodic Gate checks
     private ClientThread client;
     Thread t = null;
+    private boolean gateStatusTimer = true;
+
+    // Socket Connection values
+    private SocketConnector sConnector = null;
+    private int serverPort;
+    private String serverIPAddress;
 
     // File data stuff
     private SharedPreferences settingsData;
 
     private String strName;
-    private int ServerPort;
-    private String ServerIPAddress;
 
-    private boolean close = false;
-    public PrintWriter outputStream = null;
+    private boolean close = true;
 
     // Notification stuff
     NotificationCompat.Builder builder;
     NotificationManager nm;
 
     GPSService GPSService;
+    boolean isGPSServiceBound = false;
 
     private final IBinder binder = new SocketBinder();
 
@@ -72,12 +69,10 @@ public class SocketService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         updateValues();
-        if (intent == null) {
-            updateValues();
-        } else if (intent.getAction().equals(Constants.ACTION.SOCKET_START)) {
-
-            if (!close) {
-                Log.i(TAG, "Received Start Foreground Intent ");
+        if (intent.getAction().equals(Constants.ACTION.SOCKET_START)) {
+            checkName();
+            if (close) {
+                close = false;
 
                 Intent startGPSIntent = new Intent(SocketService.this, GPSService.class);
                 startGPSIntent.setAction(Constants.ACTION.GPS_START);
@@ -104,35 +99,38 @@ public class SocketService extends Service {
                         .addAction(android.R.drawable.ic_media_next, "Stop Service", sstopIntent)
                         .setPriority(Notification.PRIORITY_MAX)
                         .setContentIntent(pendingIntent)
-                        .setWhen(0)
+                        .setShowWhen(false)
                         .setOngoing(true).build();
 
                 startForeground(Constants.NOTIFICATION_ID.SOCKET_SERVICE_FOREGROUND, notification);
 
                 buildNotification();
-                startThread();
-            } else {
-                //checkName();
+                startGateStatusTimer();
             }
         } else if (intent.getAction().equals(Constants.ACTION.SOCKET_STOP)) {
-            stopForegroundService();
+            stopGateStatusTimer();
+            if (!close) {
+                close = true;
+                stopForegroundService();
+            }
         }
         return Service.START_NOT_STICKY;
     }
 
     public void stopForegroundService() {
-        Log.i(TAG, "Received Stop Foreground Intent");
         sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_SOCKETDISONNECTED, "true");
 
         Intent stopGPSIntent = new Intent(SocketService.this, GPSService.class);
         stopGPSIntent.setAction(Constants.ACTION.GPS_STOP);
         startService(stopGPSIntent);
-        unbindService(myServiceConnection);
+        if (isGPSServiceBound)
+            unbindService(myServiceConnection);
+        else
+            Log.i(TAG, "GPSService wasn't bound");
 
-        stopThread();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver);
         stopForeground(true);
         stopSelf();
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver);
     }
 
     @Override
@@ -163,13 +161,14 @@ public class SocketService extends Service {
         public void onServiceConnected(ComponentName name, IBinder service) {
             GPSService.MyLocalBinder binder = (GPSService.MyLocalBinder) service;
             GPSService = binder.getService();
+            isGPSServiceBound = true;
             sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_GPSCONNECTED, "true");
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            Log.i(TAG, "onGPSServiceDisconnected! ");
             sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_GPSDISCONNECTED, "true");
+            isGPSServiceBound = false;
             GPSService = null;
         }
     };
@@ -184,10 +183,10 @@ public class SocketService extends Service {
         settingsData = PreferenceManager.getDefaultSharedPreferences(this);
 
         strName = settingsData.getString("Name", "");
-        ServerIPAddress = settingsData.getString("IpAddr", "");
+        serverIPAddress = settingsData.getString("IpAddr", "");
         String strPort = settingsData.getString("IpPort", "");
 
-        ServerPort = Integer.parseInt(strPort);
+        serverPort = Integer.parseInt(strPort);
     }
 
     private void buildNotification() {
@@ -200,7 +199,7 @@ public class SocketService extends Service {
         builder.setContentTitle("Opened door automatically");
         builder.setContentText("Click to launch App");
         builder.setPriority(Notification.PRIORITY_LOW);
-        builder.setWhen(1);
+        builder.setShowWhen(true);
 
         Intent intent = new Intent(this, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
@@ -229,51 +228,39 @@ public class SocketService extends Service {
                     Log.i(TAG, "onMessage: " + "registered ... waiting for permission");
                     sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_REGISTERED, "true");
                     break;
-                case "ping":
-                    sendMessage("pong:pong");
-                    //nm.notify(Constants.NOTIFICATION_ID.SOCKET_SERVICE_TEMP, builder.build());
-                    //sendOutBroadcast("got ping ... sending pong");
-                    break;
                 case "door1 open":
                     Log.i(TAG, "onMessage: " + "door1 open");
                     sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_DOOR1OPEN, "true");
                     break;
-                case "door1 close":
-                    Log.i(TAG, "onMessage: " + "door1 close");
+                case "door1 closed":
+                    Log.i(TAG, "onMessage: " + "door1 closed");
                     sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_DOOR1CLOSE, "true");
                     break;
             }
         }
     }
 
-    public void startThread() {
-        close = true;
-        client = new ClientThread();
-        t = new Thread(client);
-        t.start();
-    }
-
-    public void stopThread() {
-        close = false;
-        if (client != null) {
-            client.cancelRead();
-        }
-    }
-
-    // Sending name and a unique Phone identifier
     @SuppressLint("MissingPermission")
     public void sendMessage(String msg) {
-        try {
-            if (socket == null)
-                return;
-            outputStream = new PrintWriter(new BufferedWriter(
-                    new OutputStreamWriter(socket.getOutputStream())), true);
-            final TelephonyManager tm = (TelephonyManager) getBaseContext().getSystemService(getApplicationContext().TELEPHONY_SERVICE);
-            outputStream.println(msg + "-" + tm.getSimSerialNumber());
-            outputStream.flush();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        final String message = msg;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    sConnector = new SocketConnector(serverPort, serverIPAddress, getBaseContext());
+                    final TelephonyManager tm = (TelephonyManager) getBaseContext().getSystemService(getApplicationContext().TELEPHONY_SERVICE);
+                    String answer = sConnector.sendMessage(message, tm.getSimSerialNumber());
+                    if (answer != null) {
+                        gotMessage(answer);
+                        sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_SOCKETCONNECTED, "true");
+                    } else {
+                        sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_SOCKETDISONNECTED, "true");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
     }
 
     public void checkName() {
@@ -285,56 +272,28 @@ public class SocketService extends Service {
         sendMessage("output:Gate1 open auto");
     }
 
-    private class ClientThread implements Runnable {
+    public void startGateStatusTimer() {
+        gateStatusTimer = true;
+        client = new ClientThread();
+        t = new Thread(client);
+        t.start();
+    }
 
-        BufferedReader inputStream = null;
-        String response = null;
+    public void stopGateStatusTimer() {
+        gateStatusTimer = false;
+    }
+
+    private class ClientThread implements Runnable {
 
         @Override
         public void run() {
-            // Try to connect to server and setup stream reader
-            try {
-                InetAddress serverAddr = InetAddress.getByName(ServerIPAddress);
-                socket = new Socket(serverAddr, ServerPort);
-                if (socket == null)
-                    throw new Exception("Couldn't connect to server!");
-                socket.setSoTimeout(10*1000);
-
-                inputStream = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            } catch (Exception e) {
-                sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_SOCKETDISONNECTED, "true");
-                return;
-            }
-            checkName();
-
-            while (close) {
+            while (gateStatusTimer) {
                 try {
-                    response = inputStream.readLine();
-                    if (response != null) {
-                        gotMessage(response);
-                        cancelRead();
-                        return;
-                    }
-                } catch (Exception e) {
-                    sendOutBroadcast(Constants.BROADCAST.EVENT_TOMAIN, Constants.BROADCAST.NAME_SOCKETDISONNECTED, "true");
+                    Thread.sleep(10000);
+                } catch (InterruptedException e) {
                     e.printStackTrace();
-                    return;
                 }
-            }
-        }
-
-        void cancelRead() {
-            try {
-                if (socket != null)
-                    socket.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            try {
-                if (inputStream != null)
-                    inputStream.close();
-            } catch (Exception e) {
-                e.printStackTrace();
+                sendMessage("output:Gate1 status");
             }
         }
     }
