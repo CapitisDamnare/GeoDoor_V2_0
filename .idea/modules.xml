@@ -4,8 +4,8 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/GeoDoor/GeoDoor.iml" filepath="$PROJECT_DIR$/GeoDoor/GeoDoor.iml" />
       <module fileurl="file://$PROJECT_DIR$/GeoDoor V2.0.iml" filepath="$PROJECT_DIR$/GeoDoor V2.0.iml" />
-      <module fileurl="file://C:\Users\Tapsi\Documents\AndroidStudioProjects\GeoDoor_V2_0\GeoDoor V2.0.iml" filepath="C:\Users\Tapsi\Documents\AndroidStudioProjects\GeoDoor_V2_0\GeoDoor V2.0.iml" />
-      <module fileurl="file://C:\Users\atapp\Documents\Android\GeoDoor V2.0\GeoDoor_V2_0.iml" filepath="C:\Users\atapp\Documents\Android\GeoDoor V2.0\GeoDoor_V2_0.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../../../../Tapsi/Documents/AndroidStudioProjects/GeoDoor_V2_0/GeoDoor V2.0.iml" filepath="$PROJECT_DIR$/../../../../Tapsi/Documents/AndroidStudioProjects/GeoDoor_V2_0/GeoDoor V2.0.iml" />
+      <module fileurl="file://$PROJECT_DIR$/GeoDoor_V2_0.iml" filepath="$PROJECT_DIR$/GeoDoor_V2_0.iml" />
     </modules>
   </component>
 </project>
