@@ -2,7 +2,7 @@
 
 **Diese Android App sollte in Kombination mit dem Java GeoDoorServer Programm benutzt werden.**
 
-**Link: https://github.com/CapitisDamnare/GeoDoorServer2**
+**Link: https://github.com/JustForFunDeveloper/GeoDoorServer2**
 
 **Appstore: https://play.google.com/store/apps/details?id=tapsi.geodoor**
 
