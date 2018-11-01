@@ -35,7 +35,7 @@ public final class SocketConnector {
         try {
             InetAddress serverAddr = InetAddress.getByName(serverIPAddress);
             socket = new Socket();
-            socket.connect(new InetSocketAddress(serverIPAddress,serverPort),1000);
+            socket.connect(new InetSocketAddress(serverIPAddress, serverPort), 1000);
 
         } catch (Exception e) {
             e.printStackTrace();
